@@ -158,7 +158,7 @@ watch(activeCategory, () => { load() })
         <RatingSummaryBar :summary="ratingSummary" :loading="reviewsLoading" />
         <div class="reviews-right">
           <ReviewList :reviews="recentReviews" :loading="reviewsLoading" />
-          <ReviewForm class="mt-3" :submit-label="'Submit review'" @submit="(p)=>{}" />
+          <ReviewForm class="mt-3" :submit-label="'Submit review'" @submit="(p)=>$emit?.('submitReview',p)" />
         </div>
       </div>
     </section>

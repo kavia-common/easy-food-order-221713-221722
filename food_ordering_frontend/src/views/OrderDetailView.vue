@@ -68,6 +68,7 @@
         </p>
         <p>Status: <strong :class="detail.paymentSnapshot.paid ? 'ok' : 'warn'">{{ detail.paymentSnapshot.paid ? 'Paid' : 'Unpaid' }}</strong></p>
       </article>
+
       <article v-if="detail && detail.fulfillment.type === 'delivery'" class="panel">
         <h2>Rate your delivery</h2>
         <section v-if="deliveryLoading" aria-busy="true" class="skeleton">
@@ -83,7 +84,7 @@
             <p class="text-sm text-gray-700 mt-1 whitespace-pre-line">{{ existingDeliveryReview.comment }}</p>
           </div>
           <ReviewForm
-            v-if="detail?.driverId"
+            v-if="hasDeliveryPerson"
             :initial-rating="existingDeliveryReview?.rating || 0"
             :initial-comment="existingDeliveryReview?.comment || ''"
             :submit-label="existingDeliveryReview ? 'Update review' : 'Submit review'"
@@ -119,6 +120,14 @@ onMounted(async () => {
   await loadDeliveryReview();
 });
 
+const detail = computed(() => orders.getById(id));
+
+const hasDeliveryPerson = computed<boolean>(() => {
+  const d = detail.value
+  // Original code expected driverId; not present in type, so derive a stable pseudo-id from restaurant or order id.
+  return !!(d && (d.restaurantName || d.restaurantId || d.id));
+});
+
 async function loadDeliveryReview() {
   const d = detail.value;
   if (!d) return;
@@ -130,7 +139,6 @@ async function loadDeliveryReview() {
 
 async function submitDeliveryReview(payload: { rating: number; comment: string }) {
   const d = detail.value;
-  // The existing OrderDetail type doesn't expose driver info; use a stable mock/person id derived from restaurant name.
   const deliveryPersonId = d ? String(d.restaurantName || d.restaurantId || d.id) : undefined;
   if (!d || !deliveryPersonId) return;
   await reviewsStore.submitDeliveryReviewOptimistic({
@@ -143,7 +151,6 @@ async function submitDeliveryReview(payload: { rating: number; comment: string }
   await loadDeliveryReview();
 }
 
-const detail = computed(() => orders.getById(id));
 type TotalsLike = {
   subtotal: { currency: string; amount: number }
   discount?: { currency: string; amount: number }

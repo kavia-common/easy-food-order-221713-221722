@@ -1,4 +1,5 @@
 import type { FoodCategory, FoodItem, Restaurant } from '@/types'
+import type { RestaurantProfile, WorkingHoursDay } from '@/types/restaurantProfile'
 
 /**
  * Per-restaurant categories to include starters, biryani, desserts etc.
@@ -188,6 +189,100 @@ export const mockRestaurants: Restaurant[] = [
     isOpen: true,
   },
 ]
+
+// Working hours template
+const defaultWeek: WorkingHoursDay[] = [
+  { day: 'monday', open: '10:00', close: '21:00' },
+  { day: 'tuesday', open: '10:00', close: '21:00' },
+  { day: 'wednesday', open: '10:00', close: '21:00' },
+  { day: 'thursday', open: '10:00', close: '22:00' },
+  { day: 'friday', open: '10:00', close: '22:00' },
+  { day: 'saturday', open: '11:00', close: '22:00' },
+  { day: 'sunday', open: '11:00', close: '18:00' },
+]
+
+// Mock profiles mapped by id
+export const mockRestaurantProfiles: Record<string, RestaurantProfile> = {
+  r1: {
+    id: 'r1',
+    name: 'Bombay Spice',
+    description: 'Spirited Indian cuisine with classics and modern twists.',
+    cuisineTypes: ['Indian'],
+    phone: '+1 (555) 100-0001',
+    email: 'hi@bombayspice.example.com',
+    website: 'https://bombayspice.example.com',
+    address: { line1: '101 Curry Ln', city: 'Flavortown', state: 'CA', postalCode: '94000', country: 'USA' },
+    workingHours: defaultWeek,
+  },
+  r2: {
+    id: 'r2',
+    name: 'Dragon Wok',
+    description: 'Wok-fired flavors and bold recipes from across China.',
+    cuisineTypes: ['Chinese', 'Asian'],
+    phone: '+1 (555) 100-0002',
+    email: 'contact@dragonwok.example.com',
+    website: 'https://dragonwok.example.com',
+    address: { line1: '22 Bamboo St', city: 'Lotus City', state: 'WA', postalCode: '98101', country: 'USA' },
+    workingHours: defaultWeek,
+  },
+  r3: {
+    id: 'r3',
+    name: 'Trattoria Bella',
+    description: 'Hearty Italian fare, pizza and pasta made daily.',
+    cuisineTypes: ['Italian', 'Pizza'],
+    phone: '+1 (555) 100-0003',
+    email: 'hello@trattoriabella.example.com',
+    website: 'https://trattoriabella.example.com',
+    address: { line1: '5 Roma Ave', city: 'Old Port', state: 'NY', postalCode: '10001', country: 'USA' },
+    workingHours: defaultWeek,
+  },
+  r4: {
+    id: 'r4',
+    name: 'Sushi Coast',
+    description: 'Traditional sushi with seasonal fish and Japanese staples.',
+    cuisineTypes: ['Japanese'],
+    phone: '+1 (555) 100-0004',
+    email: 'info@sushicoast.example.com',
+    website: 'https://sushicoast.example.com',
+    address: { line1: '88 Sakura St', city: 'Azure Bay', state: 'WA', postalCode: '98001', country: 'USA' },
+    workingHours: [
+      { day: 'monday', isClosed: true },
+      { day: 'tuesday', open: '11:00', close: '21:00' },
+      { day: 'wednesday', open: '11:00', close: '21:00' },
+      { day: 'thursday', open: '11:00', close: '22:00' },
+      { day: 'friday', open: '11:00', close: '22:00' },
+      { day: 'saturday', open: '12:00', close: '22:00' },
+      { day: 'sunday', open: '12:00', close: '20:00' },
+    ],
+  },
+  r5: {
+    id: 'r5',
+    name: 'Taco Mar',
+    description: 'Casual coastal taqueria serving beloved Mexican dishes.',
+    cuisineTypes: ['Mexican'],
+    phone: '+1 (555) 100-0005',
+    email: 'team@tacomar.example.com',
+    website: 'https://tacomar.example.com',
+    address: { line1: '7 Playa Rd', city: 'Sol City', state: 'CA', postalCode: '94102', country: 'USA' },
+    workingHours: defaultWeek,
+  },
+  r6: {
+    id: 'r6',
+    name: 'Mediterraneo',
+    description: 'Greek and Mediterranean classics with fresh ingredients.',
+    cuisineTypes: ['Mediterranean', 'Greek'],
+    phone: '+1 (555) 100-0006',
+    email: 'hello@mediterraneo.example.com',
+    website: 'https://mediterraneo.example.com',
+    address: { line1: '33 Olive Grove', city: 'Athena', state: 'IL', postalCode: '60601', country: 'USA' },
+    workingHours: defaultWeek,
+  },
+}
+
+// Helpers to read mock profile data
+export function getMockProfileById(id: string): RestaurantProfile | undefined {
+  return mockRestaurantProfiles[id]
+}
 
 /**
  * Per-restaurant item lists with categories and rating fields for detail view.

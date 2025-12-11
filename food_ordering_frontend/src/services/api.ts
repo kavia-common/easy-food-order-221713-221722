@@ -6,6 +6,7 @@ import type {
   Restaurant,
   RestaurantQuery,
 } from '@/types'
+import type { RestaurantProfile } from '@/types/restaurantProfile'
 
 /**
  * Small util to validate a base URL.
@@ -77,6 +78,7 @@ const cache = {
   itemsByKey: new Map<string, Promise<FoodItem[]>>(),
   itemByKey: new Map<string, Promise<FoodItem | null>>(),
   restaurantsByQuery: new Map<string, Promise<Restaurant[]>>(),
+  profileById: new Map<string, Promise<RestaurantProfile>>(),
 }
 
 function itemsKey(params: { categoryId?: string; search?: string; restaurantId?: string }) {
@@ -269,6 +271,97 @@ export async function submitOrder(payload: OrderPayload): Promise<OrderResponse>
 }
 
 export const featureFlags = flags
+
+function lsGet<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const v = window.localStorage.getItem(key)
+    return v ? (JSON.parse(v) as T) : null
+  } catch {
+    return null
+  }
+}
+function lsSet<T>(key: string, val: T): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(key, JSON.stringify(val))
+  } catch {
+    // ignore
+  }
+}
+
+// PUBLIC_INTERFACE
+export async function fetchRestaurantProfile(restaurantId: string): Promise<RestaurantProfile> {
+  /** Fetch a restaurant profile by id with caching and mock fallback */
+  if (!restaurantId) throw new Error('restaurantId is required')
+  const key = `profile:${restaurantId}`
+
+  const cachedMem = cache.profileById.get(restaurantId)
+  if (cachedMem) return cachedMem
+
+  const cachedLs = lsGet<RestaurantProfile>(key)
+  if (cachedLs) {
+    const p = Promise.resolve(cachedLs)
+    cache.profileById.set(restaurantId, p)
+    return p
+  }
+
+  const p = (async () => {
+    const base = getApiBase()
+    if (shouldUseMock() || !base) {
+      const mock = await importMock()
+      const data = mock.getMockProfileById(restaurantId)
+      if (!data) {
+        // Fallback: synthesize minimal profile using restaurant list
+        const list = await fetchRestaurants()
+        const baseR = list.find(r => r.id === restaurantId)
+        const minimal: RestaurantProfile = {
+          id: restaurantId,
+          name: baseR?.name || `Restaurant ${restaurantId}`,
+          description: '',
+          cuisineTypes: baseR?.cuisines || [],
+          address: { line1: '', city: '', state: '', postalCode: '', country: '' },
+          workingHours: [],
+        }
+        lsSet(key, minimal)
+        return minimal
+      }
+      lsSet(key, data)
+      return data
+    }
+    try {
+      const res = await fetch(`${String(base).replace(/\/*$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/profile`, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) throw new Error(`Profile fetch failed: ${res.status}`)
+      const data: RestaurantProfile = await res.json()
+      lsSet(key, data)
+      return data
+    } catch {
+      const mock = await importMock()
+      const data = mock.getMockProfileById(restaurantId)
+      if (data) {
+        lsSet(key, data)
+        return data
+      }
+      const list = await fetchRestaurants()
+      const baseR = list.find(r => r.id === restaurantId)
+      const minimal: RestaurantProfile = {
+        id: restaurantId,
+        name: baseR?.name || `Restaurant ${restaurantId}`,
+        description: '',
+        cuisineTypes: baseR?.cuisines || [],
+        address: { line1: '', city: '', state: '', postalCode: '', country: '' },
+        workingHours: [],
+      }
+      lsSet(key, minimal)
+      return minimal
+    }
+  })()
+
+  cache.profileById.set(restaurantId, p)
+  return p
+}
 
 // PUBLIC_INTERFACE
 export async function fetchRestaurants(query: RestaurantQuery = {}): Promise<Restaurant[]> {
