@@ -13,6 +13,7 @@ import FavoritesView from '@/views/FavoritesView.vue';
 import SubscriptionsView from '@/views/SubscriptionsView.vue';
 import ManageMenuView from '@/views/ManageMenuView.vue';
 import ItemDetailView from '@/views/ItemDetailView.vue';
+import FoodItemView from '@/views/FoodItemView.vue';
 import InvoiceView from '@/views/InvoiceView.vue';
 import ChatView from '@/views/ChatView.vue';
 
@@ -47,10 +48,16 @@ const router = createRouter({
     { path: '/restaurants/:id/manage-menu', name: 'restaurant-manage-menu', component: ManageMenuView, props: true },
 
     // items/invoice/chat
-    { path: '/items/:id', name: 'item-detail', component: ItemDetailView, props: true },
+    { path: '/items/:id', name: 'item-detail-legacy', component: ItemDetailView, props: true },
+    { path: '/item/:id', name: 'item-detail', component: FoodItemView, props: true, meta: { title: 'Item Detail' } },
     { path: '/invoice/:id', name: 'invoice', component: InvoiceView, props: true },
     { path: '/chat', name: 'chat', component: ChatView },
   ],
 });
 
+router.afterEach((to) => {
+  if (to.meta?.title) {
+    document.title = `${to.meta.title} • Easy Food Order`
+  }
+})
 export default router;

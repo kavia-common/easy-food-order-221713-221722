@@ -65,7 +65,12 @@ function toggleFav() {
 
 <template>
   <div class="card">
-    <div class="thumb" role="img" :aria-label="name">
+    <router-link
+      class="thumb"
+      :to="{ name: 'item-detail', params: { id: (item as any).id }, state: { item } }"
+      :aria-label="`View details for ${name}`"
+      role="img"
+    >
       <button
         class="fav"
         :class="{ active: isFav }"
@@ -73,22 +78,26 @@ function toggleFav() {
         :aria-label="isFav ? 'Remove from favorites' : 'Add to favorites'"
         @click.stop="toggleFav"
         title="Toggle favorite"
+        type="button"
       >
         ❤
       </button>
       <img :src="image" :alt="name" />
       <span v-if="isLow" class="badge low">Low stock</span>
       <span v-if="isOut" class="badge">Out of stock</span>
-    </div>
+    </router-link>
+
     <div class="info">
       <div class="title">{{ name }}</div>
       <p class="desc">{{ description }}</p>
       <NutritionBadge :nutrition="nutrition" />
       <div class="meta">
         <div class="price">${{ price.toFixed(2) }}</div>
-        <div class="actions" :class="{ disabled: isOut }">
+        <div class="actions" :class="{ disabled: isOut }" @click.stop>
           <QuantityStepper v-model="qty" :min="1" :max="9" />
-          <button class="add" :disabled="isOut" @click="add">{{ isOut ? 'Unavailable' : 'Add' }}</button>
+          <button class="add" :disabled="isOut" @click="add" type="button">
+            {{ isOut ? 'Unavailable' : 'Add' }}
+          </button>
         </div>
       </div>
     </div>
