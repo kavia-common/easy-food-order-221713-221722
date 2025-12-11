@@ -1,20 +1,12 @@
 import type { Invoice, OrderDetail, OrderSummary, OrderTotals, OrderLine, AddressSnapshot, PaymentSnapshot } from '@/types/orders';
-import { isCouponValid } from './couponsHelper'; // local helper we will create below
+import { isCouponValid } from './couponsHelper';
+import { getApiBase } from './runtimeConfig';
 
 const STORAGE_KEY = 'app.orderHistory.v1';
 
 function safeWindow(): Window | undefined {
-  // SSR guard
   if (typeof window === 'undefined') return undefined;
   return window;
-}
-
-function getApiBase(): string | undefined {
-  // Vite exposes env vars via import.meta.env
-  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env || {};
-  const raw = (env.VITE_BACKEND_URL as string | undefined) || (env.VITE_API_BASE as string | undefined);
-  if (!raw || typeof raw !== 'string' || !raw.trim()) return undefined;
-  return raw;
 }
 
 function readLocal<T>(key: string): T | null {
@@ -47,7 +39,6 @@ function calcTotals(lines: OrderLine[], couponCodes?: string[]): OrderTotals {
   const subtotalAmt = lines.reduce((sum, l) => sum + l.unitPrice.amount * l.quantity, 0);
   let discountAmt = 0;
   if (couponCodes && couponCodes.length) {
-    // simple coupon evaluator: apply first valid coupon at 10% off
     const valid = couponCodes.find((c) => isCouponValid(c));
     if (valid) {
       discountAmt = +(subtotalAmt * 0.1).toFixed(2);
@@ -55,7 +46,7 @@ function calcTotals(lines: OrderLine[], couponCodes?: string[]): OrderTotals {
   }
   const taxable = subtotalAmt - discountAmt;
   const taxAmt = +(taxable * 0.08).toFixed(2);
-  const deliveryFeeAmt = +(5).toFixed(2); // flat for mock
+  const deliveryFeeAmt = +(5).toFixed(2);
   const totalAmt = +(taxable + taxAmt + deliveryFeeAmt).toFixed(2);
 
   return {
@@ -182,8 +173,8 @@ function ensureSeeded() {
   seedMockHistoryIfEmpty();
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { credentials: 'include' });
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, { credentials: 'include', ...(init || {}) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as T;
 }
@@ -195,7 +186,7 @@ export async function fetchOrderHistory(): Promise<OrderSummary[]> {
   const base = getApiBase();
   if (base) {
     try {
-      const data = await fetchJson<OrderSummary[]>(`${base}/orders`);
+      const data = await fetchJson<OrderSummary[]>(`${String(base).replace(/\/*$/, '')}/orders`);
       return data;
     } catch {
       // fall through to local
@@ -212,7 +203,7 @@ export async function fetchOrderById(orderId: string): Promise<OrderDetail | nul
   const base = getApiBase();
   if (base) {
     try {
-      const data = await fetchJson<OrderDetail>(`${base}/orders/${orderId}`);
+      const data = await fetchJson<OrderDetail>(`${String(base).replace(/\/*$/, '')}/orders/${orderId}`);
       return data;
     } catch {
       // fall back
@@ -228,7 +219,7 @@ export async function fetchInvoice(orderId: string): Promise<Invoice | null> {
   const base = getApiBase();
   if (base) {
     try {
-      const data = await fetchJson<Invoice>(`${base}/orders/${orderId}/invoice`);
+      const data = await fetchJson<Invoice>(`${String(base).replace(/\/*$/, '')}/orders/${orderId}/invoice`);
       return data;
     } catch {
       // fall back

@@ -37,7 +37,7 @@ function hasFreshCache(): boolean {
   return Number.isFinite(n) && now() - n < CACHE_TTL_MS;
 }
 
-// Mock plans, visually aligned to Ocean Professional theme intent
+// Mock plans
 function mockPlans(): SubscriptionPlan[] {
   const perksBasic: SubscriptionPerk[] = [
     { type: SubscriptionPerkType.FreeDelivery, description: 'Free delivery on eligible orders', value: 1 },
@@ -47,7 +47,7 @@ function mockPlans(): SubscriptionPlan[] {
     { type: SubscriptionPerkType.VipDiscount, description: 'VIP discount on every order', value: 10 },
   ];
   const perksMeal: SubscriptionPerk[] = [
-    { type: SubscriptionPerkType.MealPlan, description: 'Monthly meal plan credits', value: 2000 }, // in cents
+    { type: SubscriptionPerkType.MealPlan, description: 'Monthly meal plan credits', value: 2000 },
     { type: SubscriptionPerkType.VipDiscount, description: 'VIP discount on every order', value: 5 },
     { type: SubscriptionPerkType.FreeDelivery, description: 'Free delivery on eligible orders', value: 1 },
   ];
@@ -55,7 +55,7 @@ function mockPlans(): SubscriptionPlan[] {
     {
       id: 'basic-monthly',
       name: 'Basic',
-      price: 499, // cents
+      price: 499,
       billingCycle: 'monthly',
       benefits: perksBasic,
       freeDeliveryEligible: true,
@@ -82,7 +82,7 @@ function mockPlans(): SubscriptionPlan[] {
       benefits: perksMeal,
       freeDeliveryEligible: true,
       discountPercent: 5,
-      mealPlanCredits: 2000, // $20 credits
+      mealPlanCredits: 2000,
       highlight: 'Get $20 meal credits monthly + perks',
     },
   ];
@@ -140,7 +140,8 @@ function normalizeApiBase(v?: string): string | undefined {
   }
 }
 async function fetchFromApi<T>(path: string): Promise<T> {
-  const base = normalizeApiBase(import.meta.env.VITE_API_BASE as string | undefined);
+  const base = normalizeApiBase(import.meta.env.VITE_API_BASE as string | undefined) ||
+               normalizeApiBase(import.meta.env.VITE_BACKEND_URL as string | undefined);
   if (!base) {
     // no backend, throw to use mock fallback
     throw new Error('No API base configured');

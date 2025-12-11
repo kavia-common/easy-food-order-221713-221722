@@ -61,7 +61,8 @@ async function tryFetch<T>(input: RequestInfo, init?: RequestInit): Promise<T | 
   const apiBase = getApiBase();
   if (!apiBase) return null;
   try {
-    const res = await fetch(typeof input === 'string' ? `${apiBase}${input}` : input, init);
+    const normalized = typeof input === 'string' ? `${String(apiBase).replace(/\/*$/, '')}${input}` : input;
+    const res = await fetch(normalized, init);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return (await res.json()) as T;
   } catch {
@@ -211,7 +212,6 @@ export async function submitDeliveryReview(
 
 function cryptoRandomId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    // randomUUID exists in modern runtimes; fallback provided below for older envs
     const anyCrypto = crypto as unknown as { randomUUID?: () => string };
     if (anyCrypto.randomUUID) return anyCrypto.randomUUID();
   }

@@ -1,45 +1,26 @@
-# vue-kavia
+# Ocean Eats Frontend - Preview and Environment
 
-This template should help get you started developing with Vue 3 in Vite.
+This app is built with Vite + Vue 3 + Pinia + Vue Router.
 
-## Recommended IDE Setup
+Preview behavior:
+- The app mounts on the DOM element with id="app".
+- Router uses HTML5 history with BASE_URL (defaults to '/'), compatible with the preview environment.
+- When environment variables are missing or invalid, all services gracefully fall back to mock/local implementations so the UI renders without contacting any backend.
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+Environment variables (configure via .env):
+- VITE_API_BASE: Base URL for HTTP API (e.g., https://api.example.com). Optional for preview.
+- VITE_BACKEND_URL: Alternative base URL checked if VITE_API_BASE is not set.
+- VITE_FRONTEND_URL: Public URL of the frontend (optional).
+- VITE_WS_URL: WebSocket URL for chat (optional).
+- VITE_FEATURE_FLAGS: JSON or comma-separated flags. Example:
+  - JSON: {"enableNetwork":false,"enableMockAPI":true}
+  - CSV: enableNetwork=true,enableMockAPI=true
 
-## Type Support for `.vue` Imports in TS
+Fallbacks:
+- If VITE_API_BASE/VITE_BACKEND_URL are not set or invalid, services use mock data.
+- WebSocket chat is disabled unless VITE_WS_URL is set and valid.
+- Orders API falls back to a mock success response in preview.
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+Troubleshooting:
+- Ensure the preview host is accessible at port 3000 (vite.config.ts uses host 0.0.0.0 and strictPort).
+- If you see network errors in the console but the UI renders, they are expected in preview without a backend.
