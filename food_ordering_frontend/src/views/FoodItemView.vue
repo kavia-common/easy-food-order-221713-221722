@@ -4,24 +4,27 @@ import { useRoute, useRouter } from 'vue-router'
 import QuantityStepper from '@/components/QuantityStepper.vue'
 import { useCartStore } from '@/stores/cart'
 import { useFavoritesStore } from '@/stores/favorites'
-import { getApiBase } from '@/services/runtimeConfig'
-import type { MenuItem } from '@/types/restaurant'
+import { fetchItemById as apiFetchItemById } from '@/services/api'
+import type { FoodItem } from '@/types'
 import StarRating from '@/components/StarRating.vue'
 
-type FetchState = 'idle' | 'loading' | 'success' | 'error' | 'not_found'
+type FetchState = 'idle' | 'loading' | 'success' | 'refreshing' | 'error' | 'not_found'
 
 const route = useRoute()
 const router = useRouter()
 const cart = useCartStore()
 const favorites = useFavoritesStore()
 
-const item = ref<MenuItem | null>(null)
+const item = ref<FoodItem | null>(null)
 const quantity = ref<number>(1)
 const state = ref<FetchState>('idle')
 const errorMessage = ref<string>('')
 
-// Try to hydrate from in-memory navigation (if we linked with state)
-const navState = route?.state as { item?: MenuItem } | undefined
+/**
+ * Try to hydrate from in-memory navigation (if we linked with state)
+ * If present, render immediately and then background-refresh to keep UI snappy.
+ */
+const navState = route?.state as { item?: FoodItem } | undefined
 if (navState?.item) {
   item.value = navState.item
   state.value = 'success'
@@ -47,7 +50,12 @@ function toggleFavorite() {
   if (isFavorite.value) {
     favorites.remove(item.value.id)
   } else {
-    favorites.add(item.value)
+    favorites.add({
+      id: item.value.id,
+      name: item.value.name,
+      image: item.value.image,
+      price: item.value.price,
+    } as any)
   }
 }
 
@@ -72,54 +80,59 @@ function addToCart() {
   }
 }
 
-async function fetchItemById(id: string) {
-  state.value = state.value === 'success' ? 'success' : 'loading'
-  const base = getApiBase()
+async function fetchItem(id: string, opts?: { background?: boolean }) {
+  if (!id) return
+  const background = !!opts?.background
+  // If UI is already showing, mark as refreshing instead of loading
+  state.value = item.value && background ? 'refreshing' : (item.value ? 'success' : 'loading')
   try {
-    if (base) {
-      const res = await fetch(`${base}/items/${encodeURIComponent(id)}`)
-      if (res.status === 404) {
-        state.value = 'not_found'
-        return
-      }
-      if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`)
-      const data = await res.json() as MenuItem
-      item.value = data
-      state.value = 'success'
+    const data = await apiFetchItemById(id)
+    if (!data) {
+      state.value = 'not_found'
+      item.value = null
       return
     }
+    item.value = data
+    state.value = 'success'
   } catch (err: any) {
     errorMessage.value = err?.message || 'Unable to fetch item'
-  }
-
-  try {
-    const { inventory } = await import('@/services/mockData.inventory')
-    const found = inventory.find((i: MenuItem) => String(i.id) === String(id))
-    if (found) {
-      item.value = found
-      state.value = 'success'
-    } else {
-      state.value = 'not_found'
-    }
-  } catch {
-    state.value = 'error'
+    if (!item.value) state.value = 'error'
+    else state.value = 'success'
   }
 }
 
 onMounted(() => {
   const id = route.params.id as string
-  if (!item.value && id) {
-    fetchItemById(id)
+  if (!id) return
+  // If navigated with state item, show immediately and refresh in background
+  if (item.value) {
+    fetchItem(id, { background: true })
+  } else {
+    fetchItem(id)
   }
 })
 
 watch(
   () => route.params.id,
-  (newId) => {
-    if (newId) {
-      item.value = null
-      quantity.value = 1
-      fetchItemById(String(newId))
+  (newId, oldId) => {
+    if (!newId || newId === oldId) return
+    quantity.value = 1
+    const id = String(newId)
+    // If we already have the same item loaded (e.g., reactive update), avoid clearing UI
+    if (item.value && String(item.value.id) === id) {
+      fetchItem(id, { background: true })
+    } else {
+      // Try to reuse route.state fast-path
+      const st = route?.state as { item?: FoodItem } | undefined
+      if (st?.item && String(st.item.id) === id) {
+        item.value = st.item
+        state.value = 'success'
+        fetchItem(id, { background: true })
+      } else {
+        item.value = null
+        state.value = 'loading'
+        fetchItem(id)
+      }
     }
   }
 )
@@ -164,12 +177,15 @@ watch(
         itemscope
         itemtype="https://schema.org/MenuItem"
       >
+        <div v-if="state === 'refreshing'" class="refresh-indicator" aria-live="polite">Refreshing…</div>
         <div class="media">
           <img
             :src="item.image"
             :alt="imageAlt"
             class="item-image"
-            loading="eager"
+            loading="lazy"
+            width="800"
+            height="460"
             itemprop="image"
           />
         </div>
@@ -420,5 +436,16 @@ watch(
   padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0,0,0,0);
   white-space: nowrap; border: 0;
+}
+.refresh-indicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(255,255,255,0.9);
+  color: #374151;
+  font-size: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 2px 8px;
 }
 </style>

@@ -82,7 +82,7 @@ function toggleFav() {
       >
         ❤
       </button>
-      <img :src="image" :alt="name" />
+      <img :src="image" :alt="name" loading="lazy" width="480" height="320" />
       <span v-if="isLow" class="badge low">Low stock</span>
       <span v-if="isOut" class="badge">Out of stock</span>
     </router-link>

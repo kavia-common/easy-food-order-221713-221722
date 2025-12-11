@@ -196,6 +196,18 @@ export async function fetchItems(
   return p
 }
 
+/** Internal: fetch with timeout for responsiveness */
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit & { timeoutMs?: number }) {
+  const controller = new AbortController()
+  const t = setTimeout(() => controller.abort(), init?.timeoutMs ?? 8000)
+  try {
+    const res = await fetch(input, { ...init, signal: controller.signal })
+    return res
+  } finally {
+    clearTimeout(t)
+  }
+}
+
 // PUBLIC_INTERFACE
 export async function fetchItemById(itemId: string, restaurantId?: string): Promise<FoodItem | null> {
   if (!itemId) return null
@@ -210,7 +222,8 @@ export async function fetchItemById(itemId: string, restaurantId?: string): Prom
       const url = restaurantId
         ? `${String(base).replace(/\/*$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/items/${encodeURIComponent(itemId)}`
         : `${String(base).replace(/\/*$/, '')}/items/${encodeURIComponent(itemId)}`
-      const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } })
+      const res = await fetchWithTimeout(url, { headers: { 'Content-Type': 'application/json' }, timeoutMs: 8000 })
+      if (res.status === 404) return null
       if (!res.ok) throw new Error('Failed to fetch item')
       return res.json()
     } catch {
