@@ -1,15 +1,12 @@
 <template>
   <div class="about">
-    <h1>This is an about page</h1>
+    <h1>About Ocean Eats</h1>
+    <p>Fresh, fast, and simple food ordering demo.</p>
   </div>
 </template>
 
 <style>
-@media (min-width: 1024px) {
-  .about {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-  }
+.about {
+  padding: 1rem;
 }
 </style>
