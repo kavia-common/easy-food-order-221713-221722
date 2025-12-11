@@ -18,6 +18,20 @@ export type Restaurant = {
   isOpen: boolean
 }
 
+/**
+ * Minimal info stored for a favorited restaurant (normalized by id).
+ */
+export type FavoriteRestaurant = {
+  id: string
+  name: string
+  image?: string
+  cuisines?: string[]
+  rating?: number
+}
+
+/**
+ * Menu item model.
+ */
 export type FoodItem = {
   id: string
   name: string
@@ -25,6 +39,17 @@ export type FoodItem = {
   image: string
   description?: string
   categoryId: string
+}
+
+/**
+ * Minimal info stored for a favorited item (normalized by id).
+ */
+export type FavoriteItem = {
+  id: string
+  name: string
+  image?: string
+  price?: number
+  restaurantId?: string
 }
 
 export type CartLine = {

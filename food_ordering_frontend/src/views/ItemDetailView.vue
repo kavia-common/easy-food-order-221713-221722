@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { FoodItem } from '@/types'
+import type { FoodItem, FavoriteItem } from '@/types'
 import { fetchItemById } from '@/services/api'
 import { useCartStore } from '@/stores/cart'
+import { useFavoritesStore } from '@/stores/favorites'
 import QuantityStepper from '@/components/QuantityStepper.vue'
 
 const route = useRoute()
@@ -12,10 +13,13 @@ const restaurantId = route.params.id as string
 const itemId = route.params.itemId as string
 
 const cart = useCartStore()
+const favs = useFavoritesStore()
 const item = ref<FoodItem | null>(null)
 const loading = ref(false)
 const err = ref<string | null>(null)
 const qty = ref(1)
+
+const isFav = computed(() => (item.value ? favs.isItemFav(item.value.id) : false))
 
 // PUBLIC_INTERFACE
 async function loadItem() {
@@ -41,6 +45,18 @@ function addToCart() {
   }
 }
 
+function toggleFav() {
+  if (!item.value) return
+  const payload: FavoriteItem = {
+    id: item.value.id,
+    name: item.value.name,
+    image: item.value.image,
+    price: item.value.price,
+    restaurantId,
+  }
+  favs.toggleItem(payload)
+}
+
 onMounted(loadItem)
 </script>
 
@@ -54,6 +70,16 @@ onMounted(loadItem)
 
       <template v-else-if="item">
         <div class="media">
+          <button
+            class="fav"
+            :class="{ active: isFav }"
+            :aria-pressed="isFav"
+            :aria-label="isFav ? 'Remove from favorites' : 'Add to favorites'"
+            @click="toggleFav"
+            title="Toggle favorite"
+          >
+            ❤
+          </button>
           <img :src="item.image" :alt="item.name" />
         </div>
         <div class="content">
@@ -108,10 +134,29 @@ onMounted(loadItem)
   z-index: 2;
 }
 .media {
+  position: relative;
   background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(229,231,235,0.3));
   min-height: 220px;
 }
 .media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fav {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.9);
+  color: #6b7280;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform .15s ease, box-shadow .15s ease, color .2s ease, background-color .2s ease;
+  z-index: 2;
+}
+.fav:hover { transform: scale(1.05); box-shadow: 0 8px 18px rgba(0,0,0,0.12); }
+.fav.active { background: #fee2e2; color: #ef4444; border-color: #fecaca; }
 .content { padding: 1rem; display: grid; gap: .6rem; }
 .name { margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--text); }
 .desc { color: #6b7280; }

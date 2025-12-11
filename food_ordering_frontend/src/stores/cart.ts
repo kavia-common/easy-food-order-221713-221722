@@ -9,9 +9,14 @@ type State = {
 
 const STORAGE_KEY = 'cart_state_v1'
 
+function canUseStorage(): boolean {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+}
+
 function loadPersisted(): State | null {
+  if (!canUseStorage()) return null
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = window.localStorage.getItem(STORAGE_KEY)
     return raw ? JSON.parse(raw) as State : null
   } catch {
     return null
@@ -30,7 +35,8 @@ export const useCartStore = defineStore('cart', () => {
 
   function persist() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ lines: lines.value, taxRate: taxRate.value }))
+      if (!canUseStorage()) return
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ lines: lines.value, taxRate: taxRate.value }))
     } catch {}
   }
 

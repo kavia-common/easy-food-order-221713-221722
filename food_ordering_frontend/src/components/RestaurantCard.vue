@@ -1,14 +1,40 @@
 <script setup lang="ts">
-import type { Restaurant } from '@/types'
+import { computed } from 'vue'
+import type { FavoriteRestaurant, Restaurant } from '@/types'
+import { useFavoritesStore } from '@/stores/favorites'
 
-defineProps<{
+const props = defineProps<{
   restaurant: Restaurant
 }>()
+
+const favs = useFavoritesStore()
+const isFav = computed(() => favs.isRestaurantFav(props.restaurant.id))
+
+function toggleFav() {
+  const payload: FavoriteRestaurant = {
+    id: props.restaurant.id,
+    name: props.restaurant.name,
+    image: props.restaurant.image,
+    cuisines: props.restaurant.cuisines,
+    rating: props.restaurant.rating,
+  }
+  favs.toggleRestaurant(payload)
+}
 </script>
 
 <template>
   <article class="card" :aria-label="restaurant.name">
     <div class="thumb" role="img" :aria-label="`${restaurant.name} image`">
+      <button
+        class="fav"
+        :class="{ active: isFav }"
+        :aria-pressed="isFav"
+        :aria-label="isFav ? 'Remove from favorites' : 'Add to favorites'"
+        @click.stop="toggleFav"
+        title="Toggle favorite"
+      >
+        ❤
+      </button>
       <img v-if="restaurant.image" :src="restaurant.image" :alt="restaurant.name" />
       <div v-else class="placeholder">🍽️</div>
       <div class="badge status" :class="{ open: restaurant.isOpen }" aria-live="polite">
@@ -55,6 +81,24 @@ defineProps<{
 }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .placeholder { width: 100%; height: 100%; display: grid; place-items: center; font-size: 40px; }
+
+.fav {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.9);
+  color: #6b7280;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform .15s ease, box-shadow .15s ease, color .2s ease, background-color .2s ease;
+}
+.fav:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+.fav.active { background: #fee2e2; color: #ef4444; border-color: #fecaca; }
 
 .badge {
   position: absolute;

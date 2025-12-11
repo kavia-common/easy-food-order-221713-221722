@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useCartStore } from '@/stores/cart'
+import { useFavoritesStore } from '@/stores/favorites'
 import { useRouter, useRoute, type LocationQueryRaw } from 'vue-router'
 import { featureFlags } from '@/services/api'
 
 const cart = useCartStore()
+const favs = useFavoritesStore()
 const router = useRouter()
 const route = useRoute()
 const enableSearch = featureFlags.enableSearch ?? true
@@ -31,6 +33,7 @@ watch(q, (val) => {
   }, 300)
 })
 const cartCount = computed(() => cart.count)
+const favCount = computed(() => favs.itemList.length + favs.restaurantList.length)
 </script>
 
 <template>
@@ -50,6 +53,11 @@ const cartCount = computed(() => cart.count)
 
       <nav class="actions">
         <a class="nav-link" href="#" @click.prevent="router.push('/restaurants')" aria-label="Browse restaurants">Restaurants</a>
+        <a class="nav-link fav-link" href="#" @click.prevent="router.push('/favorites')" aria-label="Favorites">
+          <span aria-hidden="true">❤</span>
+          <span class="sr-only">Favorites</span>
+          <span v-if="favCount" class="badge amber">{{ favCount }}</span>
+        </a>
         <button class="cart-btn" @click="router.push('/cart')">
           Cart
           <span v-if="cartCount" class="badge">{{ cartCount }}</span>
@@ -156,5 +164,28 @@ const cartCount = computed(() => cart.count)
   padding: .1rem .45rem;
   border-radius: 999px;
   font-size: .75rem;
+}
+.badge.amber {
+  background: var(--secondary);
+}
+.fav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  border: 1px solid var(--border);
+  padding: .4rem .6rem;
+  border-radius: 10px;
+  background: var(--surface);
+}
+.fav-link:hover { box-shadow: 0 0 0 4px rgba(245,158,11,0.15); }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
 }
 </style>
