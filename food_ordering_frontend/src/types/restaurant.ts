@@ -53,6 +53,17 @@ export interface Item {
   category: string
   rating?: number
   availability?: AvailabilityStatus
+  nutrition?: {
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    fiber?: number
+    sugar?: number
+    sodium?: number
+    allergens?: string[]
+    tags?: string[]
+  }
 }
 
 /**

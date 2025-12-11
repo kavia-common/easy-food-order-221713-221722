@@ -8,6 +8,7 @@ import { calculateTotals } from '@/utils/totals'
 
 const cart = useCartStore()
 const subs = useSubscriptionsStore()
+const showCalories = ref<boolean>(false)
 const router = useRouter()
 
 const couponInput = ref<string>(cart.appliedCouponCode || '')
@@ -50,12 +51,16 @@ const formatted = computed(() => {
     <div v-if="!cart.lines.length" class="empty">
       Your cart is empty.
     </div>
+    <div v-if="cart.lines.length" class="small-toggle">
+      <label><input type="checkbox" v-model="showCalories" /> Show calories</label>
+    </div>
     <ul v-else class="lines">
       <li v-for="l in cart.lines" :key="l.id" class="line">
         <img v-if="l.image" :src="l.image" :alt="l.name" />
         <div class="meta">
           <div class="name">{{ l.name }}</div>
           <div class="price">${{ l.price.toFixed(2) }}</div>
+          <div v-if="showCalories" class="cals">~ — kcal each</div>
           <QuantityStepper :model-value="l.qty" @update:modelValue="(v)=>cart.updateQty(l.id,v)" />
         </div>
         <button class="remove" @click="cart.removeItem(l.id)" aria-label="Remove">×</button>
@@ -108,6 +113,12 @@ const formatted = computed(() => {
 }
 h2 { margin-bottom: .5rem; }
 
+.small-toggle {
+  margin: .25rem 0 .5rem;
+  color: #6B7280;
+  font-size: .9rem;
+}
+.cals { color: #6B7280; font-size: .85rem; }
 .empty {
   color: #6b7280;
   padding: .75rem;

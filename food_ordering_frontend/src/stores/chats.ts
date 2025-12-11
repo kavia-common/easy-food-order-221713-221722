@@ -9,9 +9,10 @@ interface SubscriptionMap {
 
 const PERSIST_KEY = 'chat_store_state_v1';
 
-function persistDebounced(state: any) {
-  clearTimeout((persistDebounced as any)._t);
-  (persistDebounced as any)._t = setTimeout(() => {
+function persistDebounced(state: unknown) {
+  const self = persistDebounced as unknown as { _t?: ReturnType<typeof setTimeout> }
+  if (self._t) clearTimeout(self._t);
+  self._t = setTimeout(() => {
     try {
       localStorage.setItem(PERSIST_KEY, JSON.stringify(state));
     } catch {
@@ -56,7 +57,7 @@ export const useChatsStore = defineStore('chats', () => {
   async function send(content: string) {
     if (!currentThreadId.value) return;
     const msg = await sendMessage(currentThreadId.value, { content });
-    messagesByThread.value[currentThreadId.value] = (messagesByThread.value[currentThreadId.value] || []).concat(msg);
+    messagesByThread.value[currentThreadId.value] = (messagesByThread.value[currentThreadId.value] || []).concat(msg as ChatMessage);
     const t = threads.value.find((x) => x.id === currentThreadId.value);
     if (t) {
       t.latestMessage = msg;
@@ -75,7 +76,7 @@ export const useChatsStore = defineStore('chats', () => {
 
   function subscribe(threadId: string) {
     if (subs[threadId]) return;
-    const handle = subscribeToThread(threadId, (ev) => {
+    const handle = subscribeToThread(threadId, (ev: { type: 'message'|'typing'|'presence'; message?: ChatMessage; participantId?: string; isTyping?: boolean }) => {
       if (ev.type === 'message') {
         messagesByThread.value[threadId] = (messagesByThread.value[threadId] || []).concat(ev.message);
         const t = threads.value.find((x) => x.id === threadId);

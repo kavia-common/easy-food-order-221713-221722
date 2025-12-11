@@ -75,6 +75,17 @@ export const mockItems: FoodItem[] = [
     image: 'https://images.unsplash.com/photo-1548365328-9f547fb0953c?q=80&w=600&auto=format&fit=crop',
     description: 'Classic tomato, mozzarella, and basil.',
     categoryId: 'pizza',
+    nutrition: {
+      calories: 720,
+      protein: 28,
+      carbs: 78,
+      fat: 30,
+      fiber: 5,
+      sugar: 8,
+      sodium: 950,
+      allergens: ['dairy', 'gluten'],
+      tags: ['veg'],
+    },
   },
   {
     id: 'pz-pepperoni',
@@ -83,6 +94,15 @@ export const mockItems: FoodItem[] = [
     image: 'https://images.unsplash.com/photo-1542282811-943ef1a977c2?q=80&w=600&auto=format&fit=crop',
     description: 'Spicy pepperoni with mozzarella.',
     categoryId: 'pizza',
+    nutrition: {
+      calories: 820,
+      protein: 32,
+      carbs: 76,
+      fat: 42,
+      sodium: 1200,
+      allergens: ['dairy', 'gluten'],
+      tags: [],
+    },
   },
   {
     id: 'bg-classic',
@@ -91,6 +111,16 @@ export const mockItems: FoodItem[] = [
     image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=600&auto=format&fit=crop',
     description: 'Beef patty, lettuce, tomato, and house sauce.',
     categoryId: 'burgers',
+    nutrition: {
+      calories: 650,
+      protein: 29,
+      carbs: 45,
+      fat: 34,
+      fiber: 3,
+      sodium: 880,
+      allergens: ['gluten', 'egg'],
+      tags: [],
+    },
   },
   {
     id: 'bg-cheese',
@@ -99,6 +129,15 @@ export const mockItems: FoodItem[] = [
     image: 'https://images.unsplash.com/photo-1550547660-9aaf2a0b9f36?q=80&w=600&auto=format&fit=crop',
     description: 'Melted cheddar cheese and pickles.',
     categoryId: 'burgers',
+    nutrition: {
+      calories: 720,
+      protein: 33,
+      carbs: 46,
+      fat: 38,
+      sodium: 980,
+      allergens: ['gluten', 'dairy', 'egg'],
+      tags: [],
+    },
   },
   {
     id: 'dr-cola',
@@ -107,6 +146,15 @@ export const mockItems: FoodItem[] = [
     image: 'https://images.unsplash.com/photo-1581382575275-97901c2635b7?q=80&w=600&auto=format&fit=crop',
     description: 'Chilled and refreshing.',
     categoryId: 'drinks',
+    nutrition: {
+      calories: 140,
+      protein: 0,
+      carbs: 39,
+      fat: 0,
+      sugar: 39,
+      sodium: 30,
+      tags: [],
+    },
   },
   {
     id: 'dr-icedtea',
@@ -115,6 +163,15 @@ export const mockItems: FoodItem[] = [
     image: 'https://images.unsplash.com/photo-1497534446932-c925b458314e?q=80&w=600&auto=format&fit=crop',
     description: 'Brewed tea with ice and lemon.',
     categoryId: 'drinks',
+    nutrition: {
+      calories: 80,
+      protein: 0,
+      carbs: 21,
+      fat: 0,
+      sugar: 20,
+      sodium: 10,
+      tags: ['low_calorie'],
+    },
   },
 ]
 
@@ -348,8 +405,45 @@ export function getMockCategoriesForRestaurant(restaurantId?: string): FoodCateg
   return mockCategories
 }
 
-export function getMockItems(opts: { categoryId?: string; search?: string; restaurantId?: string }): FoodItem[] {
-  const { categoryId, search, restaurantId } = opts
+type HealthFilter = 'low_calorie' | 'keto' | 'high_protein' | 'low_carb'
+
+function applyHealthFilters(list: FoodItem[], healthFilters?: HealthFilter[], maxCalories?: number): FoodItem[] {
+  let r = list.slice()
+  if (typeof maxCalories === 'number') {
+    r = r.filter((i) => (i.nutrition?.calories ?? Number.POSITIVE_INFINITY) <= maxCalories)
+  }
+  if (healthFilters && healthFilters.length) {
+    r = r.filter((i) => {
+      const n = i.nutrition
+      if (!n) return false
+      const tags = new Set((n.tags ?? []).map((t) => t.toLowerCase()))
+      return healthFilters.every((f) => {
+        switch (f) {
+          case 'low_calorie':
+            return n.calories <= 500
+          case 'keto':
+            return n.carbs <= 20 || tags.has('keto')
+          case 'high_protein':
+            return n.protein >= 25
+          case 'low_carb':
+            return n.carbs <= 30
+          default:
+            return true
+        }
+      })
+    })
+  }
+  return r
+}
+
+export function getMockItems(opts: {
+  categoryId?: string
+  search?: string
+  restaurantId?: string
+  healthFilters?: HealthFilter[]
+  maxCalories?: number
+}): FoodItem[] {
+  const { categoryId, search, restaurantId, healthFilters, maxCalories } = opts
   let list: FoodItem[] = []
 
   if (restaurantId && restaurantItems[restaurantId]) {
@@ -363,10 +457,14 @@ export function getMockItems(opts: { categoryId?: string; search?: string; resta
     const q = search.toLowerCase()
     list = list.filter((i) => i.name.toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q))
   }
+  list = applyHealthFilters(list, healthFilters, maxCalories)
   return list
 }
 
 export function getMockItemById(itemId: string, restaurantId?: string): FoodItem | null {
-  const pool = restaurantId && restaurantItems[restaurantId] ? restaurantItems[restaurantId] : [...mockItems, ...Object.values(restaurantItems).flat()]
+  const pool =
+    restaurantId && restaurantItems[restaurantId]
+      ? restaurantItems[restaurantId]
+      : [...mockItems, ...Object.values(restaurantItems).flat()]
   return pool.find((i) => i.id === itemId) ?? null
 }

@@ -4,9 +4,26 @@
       <h1>Restaurant {{ restaurantId }}</h1>
       <button class="chat-btn" @click="chatSupport">Chat with restaurant support</button>
     </header>
+
     <section class="links">
       <RouterLink to="/restaurants">Back to Restaurants</RouterLink>
       <RouterLink to="/chat">Open Messages</RouterLink>
+    </section>
+
+    <section class="filters">
+      <HealthFilterBar
+        v-model="filters"
+        @change="onFiltersChanged"
+      />
+    </section>
+
+    <section class="items">
+      <div v-if="loading" class="skeletons">
+        <div class="skeleton" v-for="n in 6" :key="n"></div>
+      </div>
+      <div v-else class="grid">
+        <FoodItemCard v-for="i in items" :key="i.id" :item="i" />
+      </div>
     </section>
   </main>
 </template>
@@ -15,15 +32,48 @@
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useChatsStore } from '@/stores/chats';
+import { fetchItems } from '@/services/api'
+import FoodItemCard from '@/components/FoodItemCard.vue'
+import HealthFilterBar from '@/components/HealthFilterBar.vue'
+import type { FoodItem, HealthFilter } from '@/types'
 
 const route = useRoute();
 const router = useRouter();
 const chats = useChatsStore();
 const restaurantId = ref<string | undefined>(route.params.id as string | undefined);
 
+type Filters = { healthFilters: HealthFilter[]; maxCalories?: number | null }
+const filters = ref<Filters>({ healthFilters: [], maxCalories: null })
+const items = ref<FoodItem[]>([])
+const loading = ref(false)
+
 onMounted(() => {
   restaurantId.value = route.params.id as string | undefined;
+  load()
 });
+
+async function load() {
+  loading.value = true
+  try {
+    // Client-first fetch; pass filters to API where supported
+    items.value = await fetchItems(undefined, undefined, restaurantId.value, {
+      healthFilters: filters.value.healthFilters,
+      maxCalories: filters.value.maxCalories ?? undefined
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+let to: number | undefined
+function onFiltersChanged() {
+  if (typeof window !== 'undefined') {
+    if (to) window.clearTimeout(to)
+    to = window.setTimeout(() => load(), 250)
+  } else {
+    load()
+  }
+}
 
 async function chatSupport() {
   await chats.openThread('support', { restaurantId: restaurantId.value });

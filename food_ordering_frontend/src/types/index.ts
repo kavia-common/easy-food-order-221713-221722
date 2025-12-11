@@ -32,6 +32,18 @@ export type FavoriteRestaurant = {
 /**
  * Menu item model.
  */
+export type NutritionFacts = {
+  calories: number
+  protein: number // grams
+  carbs: number // grams
+  fat: number // grams
+  fiber?: number // grams
+  sugar?: number // grams
+  sodium?: number // mg
+  allergens?: string[]
+  tags?: string[] // e.g., ['keto','veg','gluten_free']
+}
+
 export type FoodItem = {
   id: string
   name: string
@@ -39,7 +51,10 @@ export type FoodItem = {
   image: string
   description?: string
   categoryId: string
+  nutrition?: NutritionFacts
 }
+
+export type HealthFilter = 'low_calorie' | 'keto' | 'high_protein' | 'low_carb'
 
 /**
  * Minimal info stored for a favorited item (normalized by id).

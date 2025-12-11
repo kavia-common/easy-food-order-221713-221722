@@ -5,6 +5,7 @@ import { useCartStore } from '@/stores/cart'
 import { useFavoritesStore } from '@/stores/favorites'
 import QuantityStepper from './QuantityStepper.vue'
 import type { Item as CustomerItem, AvailabilityStatus } from '@/types/restaurant'
+import NutritionBadge from './NutritionBadge.vue'
 
 // Accept either FoodItem (catalog) or CustomerItem (admin/customer menu with availability)
 type DisplayItem = FoodItem | (CustomerItem & { category?: string })
@@ -26,6 +27,11 @@ const name = computed<string>(() => ('name' in props.item ? props.item.name : ''
 const price = computed<number>(() => ('price' in props.item ? props.item.price : 0))
 const image = computed<string>(() => ('image' in props.item ? props.item.image : ''))
 const description = computed<string | undefined>(() => (hasDescription(props.item) ? props.item.description : undefined))
+type WithNutrition = { nutrition?: import('@/types').NutritionFacts }
+const nutrition = computed<import('@/types').NutritionFacts | undefined>(() => {
+  const it = props.item as unknown as WithNutrition
+  return it && typeof it === 'object' ? it.nutrition : undefined
+})
 const availability = computed<AvailabilityStatus>(() => {
   return 'availability' in props.item && props.item.availability ? props.item.availability : 'in_stock'
 })
@@ -75,6 +81,7 @@ function toggleFav() {
     <div class="info">
       <div class="title">{{ name }}</div>
       <p class="desc">{{ description }}</p>
+      <NutritionBadge :nutrition="nutrition" />
       <div class="meta">
         <div class="price">${{ price.toFixed(2) }}</div>
         <div class="actions" :class="{ disabled: isOut }">

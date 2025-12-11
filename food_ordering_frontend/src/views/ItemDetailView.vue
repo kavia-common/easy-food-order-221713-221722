@@ -6,6 +6,7 @@ import { fetchItemById } from '@/services/api'
 import { useCartStore } from '@/stores/cart'
 import { useFavoritesStore } from '@/stores/favorites'
 import QuantityStepper from '@/components/QuantityStepper.vue'
+import NutritionPanel from '@/components/NutritionPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -85,6 +86,7 @@ onMounted(loadItem)
         <div class="content">
           <h2 class="name">{{ item.name }}</h2>
           <p class="desc">{{ item.description }}</p>
+          <NutritionPanel :nutrition="item.nutrition" />
 
           <div class="meta">
             <div class="price">${{ item.price.toFixed(2) }}</div>

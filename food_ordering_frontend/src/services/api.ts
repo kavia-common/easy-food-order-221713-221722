@@ -5,6 +5,7 @@ import type {
   OrderResponse,
   Restaurant,
   RestaurantQuery,
+  HealthFilter,
 } from '@/types'
 import type { RestaurantProfile } from '@/types/restaurantProfile'
 import type { Item as CustomerItem, AdminMenuItemEdit, AvailabilityStatus } from '@/types/restaurant'
@@ -85,11 +86,13 @@ const cache = {
   customerMenuByRestaurant: new Map<string, Promise<CustomerItem[]>>(),
 }
 
-function itemsKey(params: { categoryId?: string; search?: string; restaurantId?: string }) {
+function itemsKey(params: { categoryId?: string; search?: string; restaurantId?: string; healthFilters?: string[]; maxCalories?: number }) {
   return JSON.stringify({
     c: params.categoryId || '',
     s: (params.search || '').toLowerCase(),
     r: params.restaurantId || '',
+    h: (params.healthFilters || []).slice().sort().join(','),
+    m: typeof params.maxCalories === 'number' ? params.maxCalories : ''
   })
 }
 
@@ -149,19 +152,20 @@ export async function fetchItems(
   categoryId?: string,
   search?: string,
   restaurantId?: string,
+  options?: { healthFilters?: HealthFilter[]; maxCalories?: number }
 ): Promise<FoodItem[]> {
   /**
    * Fetches menu items, with optional category, search, and restaurant filter. Falls back to mock on failure.
    * Results are cached by (restaurantId, categoryId, search) to minimize repeated calls.
    */
-  const key = itemsKey({ categoryId, search, restaurantId })
+  const key = itemsKey({ categoryId, search, restaurantId, healthFilters: options?.healthFilters, maxCalories: options?.maxCalories })
   const cached = cache.itemsByKey.get(key)
   if (cached) return cached
 
   const p = (async () => {
     if (shouldUseMock()) {
       const data = await importMock()
-      return data.getMockItems({ categoryId, search, restaurantId })
+      return data.getMockItems({ categoryId, search, restaurantId, healthFilters: options?.healthFilters, maxCalories: options?.maxCalories })
     }
     const base = getApiBase()
     if (!base) {
@@ -172,15 +176,18 @@ export async function fetchItems(
       const baseUrl = restaurantId
         ? `${String(base).replace(/\/*$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/items`
         : `${String(base).replace(/\/*$/, '')}/items`
-      const url = new URL(baseUrl, window.location.origin)
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+      const url = new URL(baseUrl, origin)
       if (categoryId) url.searchParams.set('categoryId', categoryId)
       if (search) url.searchParams.set('q', search)
+      if (options?.healthFilters?.length) url.searchParams.set('health', options.healthFilters.join(','))
+      if (typeof options?.maxCalories === 'number') url.searchParams.set('maxCalories', String(options.maxCalories))
       const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } })
       if (!res.ok) throw new Error('Failed to fetch items')
       return res.json()
     } catch {
       const data = await importMock()
-      return data.getMockItems({ categoryId, search, restaurantId })
+      return data.getMockItems({ categoryId, search, restaurantId, healthFilters: options?.healthFilters, maxCalories: options?.maxCalories })
     }
   })()
 
