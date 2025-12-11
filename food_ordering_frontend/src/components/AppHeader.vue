@@ -21,6 +21,12 @@
           <span v-if="cartCount" class="badge">{{ cartCount }}</span>
         </RouterLink>
 
+        <RouterLink class="checkout" to="/checkout" aria-label="Go to checkout">
+          <span class="icon" aria-hidden="true">💳</span>
+          <span>Checkout</span>
+          <span v-if="cartCount" class="badge small">{{ cartCount }}</span>
+        </RouterLink>
+
         <button class="chat-link" @click="goChat">
           Chat
           <span v-if="unread" class="badge">{{ unread }}</span>
@@ -92,7 +98,7 @@ function goChat() {
   padding: 6px 12px;
   cursor: pointer;
 }
-.cart {
+.cart, .checkout {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -102,6 +108,10 @@ function goChat() {
   border: 1px solid #e5e7eb;
   text-decoration: none;
   color: #111827;
+}
+.checkout {
+  background: linear-gradient(180deg, rgba(37,99,235,.10), #fff);
+  border-color: #dbeafe;
 }
 .icon { font-size: 16px; }
 .badge {
@@ -113,4 +123,5 @@ function goChat() {
   font-size: 12px;
   margin-left: 2px;
 }
+.badge.small { font-size: 10px; padding: 1px 6px; }
 </style>

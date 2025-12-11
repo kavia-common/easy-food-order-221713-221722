@@ -19,6 +19,7 @@ import ChatView from '@/views/ChatView.vue';
 import AnalyticsDashboard from '@/views/AnalyticsDashboard.vue';
 import NotificationsSettings from '@/views/NotificationsSettings.vue';
 import AdminCouponsView from '@/views/AdminCouponsView.vue';
+import OrderConfirmationView from '@/views/OrderConfirmationView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -41,6 +42,7 @@ const router = createRouter({
     // cart/checkout
     { path: '/cart', name: 'cart', component: CartView },
     { path: '/checkout', name: 'checkout', component: CheckoutView },
+    { path: '/order-confirmation/:orderId', name: 'order-confirmation', component: OrderConfirmationView, props: true, meta: { title: 'Order Confirmation' } },
 
     // favorites/subscriptions
     { path: '/favorites', name: 'favorites', component: FavoritesView },

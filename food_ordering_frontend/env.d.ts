@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+declare module 'uuid';
+
 interface ImportMetaEnv {
   readonly VITE_WS_URL?: string;
   readonly VITE_API_BASE?: string;
