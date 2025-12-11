@@ -335,3 +335,6 @@ export async function fetchRestaurants(query: RestaurantQuery = {}): Promise<Res
     // keep cached
   }
 }
+
+// Re-export orders API to centralize service imports if desired
+export * as OrdersApi from './ordersApi'

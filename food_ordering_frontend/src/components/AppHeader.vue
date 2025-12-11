@@ -24,7 +24,6 @@ watch(q, (val) => {
       query.q = String(val)
     } else {
       // Ensure 'q' is omitted when empty
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete (query as Record<string, unknown>).q
     }
     if (route.name === 'home') {
@@ -53,6 +52,7 @@ const favCount = computed(() => favs.itemList.length + favs.restaurantList.lengt
 
       <nav class="actions">
         <a class="nav-link" href="#" @click.prevent="router.push('/restaurants')" aria-label="Browse restaurants">Restaurants</a>
+        <a class="nav-link" href="#" @click.prevent="router.push('/orders')" aria-label="Order history">Orders</a>
         <a class="nav-link fav-link" href="#" @click.prevent="router.push('/favorites')" aria-label="Favorites">
           <span aria-hidden="true">❤</span>
           <span class="sr-only">Favorites</span>

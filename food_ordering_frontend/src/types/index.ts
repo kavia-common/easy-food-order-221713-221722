@@ -132,3 +132,6 @@ export type RestaurantQuery = {
   // free-form, can be extended for geo or address
   location?: string
 }
+
+// Re-export order-related domain models
+export * from './orders'
