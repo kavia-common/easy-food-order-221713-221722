@@ -226,6 +226,14 @@ watch(
             <span class="rating-text muted" v-else aria-label="No ratings yet">
               No ratings yet
             </span>
+            <RouterLink
+              v-if="(item as any)?.restaurantId"
+              class="badge"
+              :to="{ name: 'restaurant', params: { id: (item as any).restaurantId }, hash: '#ratings' }"
+              title="See restaurant ratings"
+            >
+              ★ Ratings
+            </RouterLink>
           </div>
 
           <p class="description" itemprop="description">
@@ -362,6 +370,15 @@ watch(
 }
 .rating-text { color: var(--text); font-size: 14px; }
 .rating-text.muted { color: var(--muted); }
+.badge {
+  font-size: 0.85rem;
+  background: #111827;
+  color: #fff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  text-decoration: none;
+}
 .description {
   color: #374151;
   font-size: 16px;
