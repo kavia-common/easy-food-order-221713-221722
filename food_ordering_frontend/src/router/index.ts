@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
+import SubscriptionsView from '@/views/SubscriptionsView.vue'
 
 const CartView = () => import('@/views/CartView.vue')
 const CheckoutView = () => import('@/views/CheckoutView.vue')
@@ -26,6 +27,8 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'home', component: HomeView },
+    { path: '/subscriptions', name: 'subscriptions', component: SubscriptionsView },
+
     { path: '/restaurants', name: 'restaurants', component: RestaurantsView },
     // keeping existing alt paths for restaurant/item navigation if used elsewhere
     { path: '/restaurants/:id/menu', name: 'restaurant-menu', component: RestaurantMenuView, props: true },

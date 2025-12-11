@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import QuantityStepper from './QuantityStepper.vue'
 import { useRouter } from 'vue-router'
+import { useSubscriptionsStore } from '@/stores/subscriptions'
+import { calculateTotals } from '@/utils/totals'
 
 const cart = useCartStore()
+const subs = useSubscriptionsStore()
 const router = useRouter()
 
 const couponInput = ref<string>(cart.appliedCouponCode || '')
@@ -16,6 +19,29 @@ function removeCoupon() {
   cart.removeCoupon()
   couponInput.value = ''
 }
+
+const totals = computed(() => {
+  return calculateTotals({
+    lineItems: cart.lines.map(l => ({ price: Math.round(l.price * 100), quantity: l.qty })), // convert to cents if stored as dollars
+    deliveryFee: 499, // static fallback; could be from settings
+    taxRate: cart.taxRate, // cart.taxRate already fraction (0.08)
+    appliedCouponCode: cart.appliedCouponCode || undefined,
+  })
+})
+
+const formatted = computed(() => {
+  const fmt = (cents: number) => (cents / 100).toFixed(2)
+  return {
+    subtotal: fmt(totals.value.subtotal),
+    coupon: totals.value.couponDiscount > 0 ? `- $${fmt(totals.value.couponDiscount)}` : null,
+    vip: totals.value.vipDiscount > 0 ? `- $${fmt(totals.value.vipDiscount)}` : null,
+    credits: totals.value.mealCreditsApplied > 0 ? `- $${fmt(totals.value.mealCreditsApplied)}` : null,
+    tax: fmt(totals.value.tax),
+    deliveryFee: fmt(totals.value.deliveryFee),
+    total: fmt(totals.value.total),
+    creditsRemaining: subs.mealPlanCreditsRemaining,
+  }
+})
 </script>
 
 <template>
@@ -57,10 +83,14 @@ function removeCoupon() {
     </div>
 
     <div class="summary" aria-label="Order summary">
-      <div class="row"><span>Subtotal</span><span>${{ cart.subtotal.toFixed(2) }}</span></div>
-      <div v-if="cart.discount > 0" class="row savings"><span>Savings</span><span>-${{ cart.discount.toFixed(2) }}</span></div>
-      <div class="row"><span>Tax</span><span>${{ cart.tax.toFixed(2) }}</span></div>
-      <div class="row total"><span>Total</span><span>${{ cart.total.toFixed(2) }}</span></div>
+      <div class="row"><span>Subtotal</span><span>${{ formatted.subtotal }}</span></div>
+      <div v-if="formatted.coupon" class="row savings"><span>Coupon</span><span>{{ formatted.coupon }}</span></div>
+      <div v-if="formatted.vip" class="row savings"><span>VIP Discount</span><span>{{ formatted.vip }}</span></div>
+      <div v-if="formatted.credits" class="row savings"><span>Meal Credits</span><span>{{ formatted.credits }}</span></div>
+      <div class="row"><span>Tax</span><span>${{ formatted.tax }}</span></div>
+      <div class="row"><span>Delivery</span><span>${{ formatted.deliveryFee }}</span></div>
+      <div v-if="formatted.creditsRemaining > 0" class="credits-remaining">Meal credits left: ${{ (formatted.creditsRemaining/100).toFixed(2) }}</div>
+      <div class="row total"><span>Total</span><span>${{ formatted.total }}</span></div>
       <button class="checkout" :disabled="!cart.lines.length" @click="router.push('/checkout')">
         Proceed to Checkout
       </button>
@@ -166,4 +196,9 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235
   font-weight: 700;
 }
 .checkout:disabled { opacity: .6; cursor: not-allowed; }
+.credits-remaining {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #6B7280;
+}
 </style>

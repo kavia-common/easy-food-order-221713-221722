@@ -136,3 +136,4 @@ export type RestaurantQuery = {
  // Re-export order-related domain models
 export * from './orders'
 export * from './reviews'
+export * from './subscriptions'

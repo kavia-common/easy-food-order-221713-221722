@@ -4,12 +4,18 @@ import { useCartStore } from '@/stores/cart'
 import { useFavoritesStore } from '@/stores/favorites'
 import { useRouter, useRoute, type LocationQueryRaw } from 'vue-router'
 import { featureFlags } from '@/services/api'
+import { storeToRefs } from 'pinia'
+import { useSubscriptionsStore } from '@/stores/subscriptions'
 
 const cart = useCartStore()
 const favs = useFavoritesStore()
 const router = useRouter()
 const route = useRoute()
 const enableSearch = featureFlags.enableSearch ?? true
+
+const subs = useSubscriptionsStore()
+subs.init?.() // safe call; store implements init
+const { isActive, subscription } = storeToRefs(subs)
 
 const q = ref<string>((route.query.q as string) || '')
 
@@ -53,6 +59,14 @@ const favCount = computed(() => favs.itemList.length + favs.restaurantList.lengt
       <nav class="actions">
         <a class="nav-link" href="#" @click.prevent="router.push('/restaurants')" aria-label="Browse restaurants">Restaurants</a>
         <a class="nav-link" href="#" @click.prevent="router.push('/orders')" aria-label="Order history">Orders</a>
+
+        <a class="nav-link" href="#" @click.prevent="router.push('/subscriptions')" aria-label="Subscription">
+          <span class="badge" :class="isActive ? 'badge-active' : 'badge-inactive'">
+            Subscription
+            <small v-if="subscription?.planId" class="badge-plan">· {{ subscription?.status }}</small>
+          </span>
+        </a>
+
         <a class="nav-link fav-link" href="#" @click.prevent="router.push('/favorites')" aria-label="Favorites">
           <span aria-hidden="true">❤</span>
           <span class="sr-only">Favorites</span>
@@ -164,9 +178,23 @@ const favCount = computed(() => favs.itemList.length + favs.restaurantList.lengt
   padding: .1rem .45rem;
   border-radius: 999px;
   font-size: .75rem;
+  border: 1px solid #D1D5DB;
 }
 .badge.amber {
   background: var(--secondary);
+}
+.badge-active {
+  background: #DBEAFE;
+  color: #1E40AF;
+  border-color: #93C5FD;
+}
+.badge-inactive {
+  background: #FEF3C7;
+  color: #92400E;
+  border-color: #FCD34D;
+}
+.badge-plan {
+  color: #6B7280;
 }
 .fav-link {
   display: inline-flex;
