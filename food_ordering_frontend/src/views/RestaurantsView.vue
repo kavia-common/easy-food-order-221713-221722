@@ -73,7 +73,16 @@ watch([selectedCuisines, sortBy, sortDir], load)
       <div v-else-if="!restaurants.length" class="state empty" aria-live="polite">No restaurants found.</div>
 
       <div v-else class="grid" role="list" aria-label="Restaurant results">
-        <RestaurantCard v-for="r in restaurants" :key="r.id" :restaurant="r" role="listitem" />
+        <a
+          v-for="r in restaurants"
+          :key="r.id"
+          class="card-link"
+          :href="`/restaurants/${r.id}/menu`"
+          @click.prevent="$router.push({ name: 'restaurant-menu', params: { id: r.id } })"
+          role="listitem"
+        >
+          <RestaurantCard :restaurant="r" />
+        </a>
       </div>
     </section>
   </div>

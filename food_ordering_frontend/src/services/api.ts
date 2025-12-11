@@ -62,48 +62,49 @@ async function importMock() {
 }
 
 // PUBLIC_INTERFACE
-export async function fetchCategories(): Promise<FoodCategory[]> {
-  /** Fetches food categories list, falling back to mock when API is unavailable or request fails. */
+export async function fetchCategories(restaurantId?: string): Promise<FoodCategory[]> {
+  /** Fetches food categories list, optionally scoped to a restaurant. Falls back to mock when API is unavailable or request fails. */
   if (shouldUseMock()) {
     const data = await importMock()
-    return data.mockCategories
+    return data.getMockCategoriesForRestaurant(restaurantId)
   }
   const base = getApiBase()
   if (!base) {
     const data = await importMock()
-    return data.mockCategories
+    return data.getMockCategoriesForRestaurant(restaurantId)
   }
   try {
-    const res = await fetch(`${String(base).replace(/\/+$/, '')}/categories`, {
+    const url = restaurantId
+      ? `${String(base).replace(/\/+$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/categories`
+      : `${String(base).replace(/\/+$/, '')}/categories`
+    const res = await fetch(url, {
       headers: { 'Content-Type': 'application/json' },
     })
     if (!res.ok) throw new Error('Failed to fetch categories')
     return res.json()
   } catch {
-    // Fallback to mock on any network/parse failure
     const data = await importMock()
-    return data.mockCategories
+    return data.getMockCategoriesForRestaurant(restaurantId)
   }
 }
 
 // PUBLIC_INTERFACE
-export async function fetchItems(categoryId?: string, search?: string): Promise<FoodItem[]> {
-  /** Fetches menu items, with optional category and search filter. Falls back to mock on failure. */
+export async function fetchItems(categoryId?: string, search?: string, restaurantId?: string): Promise<FoodItem[]> {
+  /** Fetches menu items, with optional category, search, and restaurant filter. Falls back to mock on failure. */
   if (shouldUseMock()) {
     const data = await importMock()
-    return data.mockItems
-      .filter((i) => (!categoryId || i.categoryId === categoryId))
-      .filter((i) => (!search || i.name.toLowerCase().includes(String(search).toLowerCase())))
+    return data.getMockItems({ categoryId, search, restaurantId })
   }
   const base = getApiBase()
   if (!base) {
     const data = await importMock()
-    return data.mockItems
-      .filter((i) => (!categoryId || i.categoryId === categoryId))
-      .filter((i) => (!search || i.name.toLowerCase().includes(String(search).toLowerCase())))
+    return data.getMockItems({ categoryId, search, restaurantId })
   }
   try {
-    const url = new URL(`${String(base).replace(/\/+$/, '')}/items`, window.location.origin)
+    const baseUrl = restaurantId
+      ? `${String(base).replace(/\/+$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/items`
+      : `${String(base).replace(/\/+$/, '')}/items`
+    const url = new URL(baseUrl, window.location.origin)
     if (categoryId) url.searchParams.set('categoryId', categoryId)
     if (search) url.searchParams.set('q', search)
     const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } })
@@ -111,9 +112,33 @@ export async function fetchItems(categoryId?: string, search?: string): Promise<
     return res.json()
   } catch {
     const data = await importMock()
-    return data.mockItems
-      .filter((i) => (!categoryId || i.categoryId === categoryId))
-      .filter((i) => (!search || i.name.toLowerCase().includes(String(search).toLowerCase())))
+    return data.getMockItems({ categoryId, search, restaurantId })
+  }
+}
+
+// PUBLIC_INTERFACE
+export async function fetchItemById(itemId: string, restaurantId?: string): Promise<FoodItem | null> {
+  /** Fetch a single menu item by ID, optionally restaurant-scoped. Falls back to mock and returns null if not found. */
+  if (!itemId) return null
+  if (shouldUseMock()) {
+    const data = await importMock()
+    return data.getMockItemById(itemId, restaurantId)
+  }
+  const base = getApiBase()
+  if (!base) {
+    const data = await importMock()
+    return data.getMockItemById(itemId, restaurantId)
+  }
+  try {
+    const url = restaurantId
+      ? `${String(base).replace(/\/+$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/items/${encodeURIComponent(itemId)}`
+      : `${String(base).replace(/\/+$/, '')}/items/${encodeURIComponent(itemId)}`
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } })
+    if (!res.ok) throw new Error('Failed to fetch item')
+    return res.json()
+  } catch {
+    const data = await importMock()
+    return data.getMockItemById(itemId, restaurantId)
   }
 }
 
