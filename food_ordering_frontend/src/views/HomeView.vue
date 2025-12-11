@@ -2,17 +2,21 @@
 import { onMounted, ref, watch } from 'vue'
 import CategoryList from '@/components/CategoryList.vue'
 import FoodItemCard from '@/components/FoodItemCard.vue'
+import SearchBar from '@/components/SearchBar.vue'
 import { fetchCategories, fetchItems } from '@/services/api'
 import { withInventoryDefaults as invDefaults } from '@/services/mockData.inventory'
 import type { FoodCategory, FoodItem } from '@/types'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
+
 const categories = ref<FoodCategory[]>([])
 const items = ref<FoodItem[]>([])
 const loading = ref(false)
 const err = ref<string | null>(null)
 const activeCategory = ref<string | undefined>(undefined)
+const search = ref<string>(typeof route.query.q === 'string' ? route.query.q : '')
 
 async function load() {
   loading.value = true
@@ -21,9 +25,7 @@ async function load() {
     if (categories.value.length === 0) {
       categories.value = await fetchCategories()
     }
-    const search = (route.query.q as string) || undefined
-    const raw = await fetchItems(activeCategory.value, search)
-    // Enrich with availability so badges render
+    const raw = await fetchItems(activeCategory.value, search.value || undefined)
     items.value = raw.map((fi) =>
       ({
         ...fi,
@@ -50,12 +52,42 @@ async function load() {
   }
 }
 onMounted(load)
-// Watch q changes and also fulfillment (future extension), keep for reactivity
-watch([() => route.query.q, () => route.query.fulfillment, activeCategory], load)
+
+function setQueryParam(next: string) {
+  const q = next || undefined
+  router.replace({ query: { ...route.query, q } })
+  search.value = next
+}
+function clearSearch() {
+  setQueryParam('')
+}
+
+watch([() => route.query.q, () => route.query.fulfillment, activeCategory], ([q]) => {
+  search.value = typeof q === 'string' ? q : ''
+  load()
+})
 </script>
 
 <template>
   <div class="home">
+    <header class="page-header" aria-label="Browse menu">
+      <div class="title">
+        <h2>Browse Menu</h2>
+        <p>Find dishes by name or category.</p>
+      </div>
+      <div class="search-wrap">
+        <SearchBar
+          :model-value="search"
+          aria-label="Search menu items"
+          placeholder="Search by name or category"
+          :debounce-ms="350"
+          :loading="loading"
+          @update:modelValue="setQueryParam"
+          @clear="clearSearch"
+        />
+      </div>
+    </header>
+
     <CategoryList
       :categories="categories"
       :active="activeCategory"
@@ -69,19 +101,36 @@ watch([() => route.query.q, () => route.query.fulfillment, activeCategory], load
         <div class="skeleton-text w2" />
       </div>
     </div>
-    <div v-else-if="err" class="error">
+    <div v-else-if="err" class="error" role="alert">
       {{ err }}. Please check your connection or try again shortly.
     </div>
-    <div v-else-if="!items.length" class="empty">No items found.</div>
+    <div v-else-if="!items.length" class="empty" aria-live="polite">No items match your search.</div>
 
-    <div v-else class="grid">
-      <FoodItemCard v-for="it in items" :key="it.id" :item="it" />
+    <div v-else class="grid" role="list" aria-label="Menu results">
+      <FoodItemCard v-for="it in items" :key="it.id" :item="it" role="listitem" />
     </div>
   </div>
 </template>
 
 <style scoped>
 .home { display: grid; gap: .75rem; }
+
+.page-header {
+  display: grid;
+  gap: .5rem;
+  padding: .25rem 0 .5rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(90deg, rgba(37,99,235,0.08), rgba(249,250,251,1));
+  border-radius: 10px;
+}
+@media (min-width: 768px) {
+  .page-header { grid-template-columns: 1fr 1.2fr; align-items: center; }
+}
+.title { padding: .25rem .5rem; }
+.title h2 { margin: 0; font-size: 1.25rem; }
+.title p { margin: 0; color: #6b7280; }
+
+.search-wrap { padding: .25rem .5rem; }
 
 .loading, .error, .empty {
   border: 1px dashed var(--border);
