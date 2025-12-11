@@ -56,8 +56,11 @@ onMounted(() => {
 async function load() {
   loading.value = true
   try {
+    // Capture voice item keywords from query
+    const search = (route.query.q as string) || undefined
+
     // Client-first fetch; pass filters to API where supported
-    const raw = await fetchItems(undefined, undefined, restaurantId.value, {
+    const raw = await fetchItems(undefined, search, restaurantId.value, {
       healthFilters: filters.value.healthFilters,
       maxCalories: filters.value.maxCalories ?? undefined
     })

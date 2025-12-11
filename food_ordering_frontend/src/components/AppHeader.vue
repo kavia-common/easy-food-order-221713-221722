@@ -5,6 +5,11 @@
         <RouterLink class="nav-link" to="/">Home</RouterLink>
         <RouterLink class="nav-link" to="/about">About</RouterLink>
         <RouterLink class="nav-link" to="/orders">Orders</RouterLink>
+
+        <div class="spacer" aria-hidden="true"></div>
+
+        <VoiceSearchButton />
+
         <button class="chat-link" @click="goChat">
           Chat
           <span v-if="unread" class="badge">{{ unread }}</span>
@@ -18,6 +23,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useChatsStore } from '@/stores/chats';
+import VoiceSearchButton from '@/components/VoiceSearchButton.vue';
 
 const router = useRouter();
 const chats = useChatsStore();
@@ -43,6 +49,7 @@ function goChat() {
   align-items: center;
   gap: 12px;
 }
+.spacer { flex: 1 1 auto; }
 .nav-link {
   padding: 6px 10px;
   border-radius: 8px;
@@ -54,7 +61,6 @@ function goChat() {
   color: #1e4fd6;
 }
 .chat-link {
-  margin-left: auto;
   background: transparent;
   border: 1px solid #e5e7eb;
   border-radius: 999px;

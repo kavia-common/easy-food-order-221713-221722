@@ -152,3 +152,4 @@ export type RestaurantQuery = {
 export * from './orders'
 export * from './reviews'
 export * from './subscriptions'
+export * from './voice'

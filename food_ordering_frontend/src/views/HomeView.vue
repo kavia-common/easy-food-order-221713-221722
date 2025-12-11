@@ -50,7 +50,8 @@ async function load() {
   }
 }
 onMounted(load)
-watch([() => route.query.q, activeCategory], load)
+// Watch q changes and also fulfillment (future extension), keep for reactivity
+watch([() => route.query.q, () => route.query.fulfillment, activeCategory], load)
 </script>
 
 <template>

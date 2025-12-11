@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { fetchRestaurants } from '@/services/api'
 import type { Restaurant } from '@/types'
 import CuisineFilter from '@/components/CuisineFilter.vue'
 import SortBar from '@/components/SortBar.vue'
 import RestaurantCard from '@/components/RestaurantCard.vue'
+
+const route = useRoute()
 
 const loading = ref(false)
 const err = ref<string | null>(null)
@@ -18,23 +21,58 @@ const sortDir = ref<'asc' | 'desc'>('desc')
 // Available cuisines (can be refined based on data)
 const allCuisines = ref<string[]>(['Indian','Chinese','Italian','Japanese','Mexican','Mediterranean','Greek','Asian','Pizza'])
 
+function applyRouteQueryToFilters() {
+  // cuisines can be string or array
+  const rc = route.query.cuisines
+  if (Array.isArray(rc)) {
+    selectedCuisines.value = rc.map((x) => String(x))
+  } else if (typeof rc === 'string' && rc.length) {
+    // support comma separated
+    selectedCuisines.value = rc.split(',').map((s) => s.trim()).filter(Boolean)
+  }
+
+  // near me sorting preference
+  const nearMe = route.query.nearMe === '1'
+  if (nearMe) {
+    sortBy.value = 'distance'
+    sortDir.value = 'asc'
+  } else {
+    // apply explicit sortBy/Dir if provided
+    if (route.query.sortBy === 'distance' || route.query.sortBy === 'rating' || route.query.sortBy === 'price') {
+      sortBy.value = route.query.sortBy
+    }
+    if (route.query.sortDir === 'asc' || route.query.sortDir === 'desc') {
+      sortDir.value = route.query.sortDir
+    }
+  }
+}
+
 async function load() {
   loading.value = true
   err.value = null
   try {
+    applyRouteQueryToFilters()
     // If multiple cuisines selected, for now send first to API and filter client-side for others.
-    // API accepts single cuisine; client filtering will handle multi-select scenario.
     const primaryCuisine = selectedCuisines.value[0]
-    const list = await fetchRestaurants({
+    let list = await fetchRestaurants({
       cuisine: primaryCuisine,
       sortBy: sortBy.value,
       sortDir: sortDir.value,
     })
     // Additional client filtering for multi-cuisine selection
-    const filtered = selectedCuisines.value.length
+    list = selectedCuisines.value.length
       ? list.filter(r => r.cuisines.some(c => selectedCuisines.value.includes(c)))
       : list
-    restaurants.value = filtered
+
+    // If lat/lon present, we could compute distances; fallback to existing distance field
+    const lat = route.query.lat ? Number(route.query.lat) : undefined
+    const lon = route.query.lon ? Number(route.query.lon) : undefined
+    if (typeof lat === 'number' && !Number.isNaN(lat) && typeof lon === 'number' && !Number.isNaN(lon)) {
+      // Simulate nearby prioritization by sorting by existing distanceKm (mock)
+      list = list.slice().sort((a, b) => a.distanceKm - b.distanceKm)
+    }
+
+    restaurants.value = list
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'message' in e) {
       const ex = e as { message?: unknown }
@@ -48,7 +86,7 @@ async function load() {
 }
 
 onMounted(load)
-watch([selectedCuisines, sortBy, sortDir], load)
+watch([selectedCuisines, sortBy, sortDir, () => route.query], load)
 </script>
 
 <template>
