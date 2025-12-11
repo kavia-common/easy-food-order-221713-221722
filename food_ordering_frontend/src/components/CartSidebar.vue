@@ -3,44 +3,29 @@ import { ref, computed } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import QuantityStepper from './QuantityStepper.vue'
 import { useRouter } from 'vue-router'
-import { useSubscriptionsStore } from '@/stores/subscriptions'
-import { calculateTotals } from '@/utils/totals'
 
 const cart = useCartStore()
-const subs = useSubscriptionsStore()
 const showCalories = ref<boolean>(false)
 const router = useRouter()
 
 const couponInput = ref<string>(cart.appliedCouponCode || '')
-function apply() {
+async function apply() {
   if (!couponInput.value) return
-  cart.applyCoupon(couponInput.value)
+  await cart.applyCoupon(couponInput.value)
 }
 function removeCoupon() {
   cart.removeCoupon()
   couponInput.value = ''
 }
 
-const totals = computed(() => {
-  return calculateTotals({
-    lineItems: cart.lines.map(l => ({ price: Math.round(l.price * 100), quantity: l.qty })), // convert to cents if stored as dollars
-    deliveryFee: 499, // static fallback; could be from settings
-    taxRate: cart.taxRate, // cart.taxRate already fraction (0.08)
-    appliedCouponCode: cart.appliedCouponCode || undefined,
-  })
-})
-
 const formatted = computed(() => {
-  const fmt = (cents: number) => (cents / 100).toFixed(2)
+  const fmt = (n: number) => n.toFixed(2)
   return {
-    subtotal: fmt(totals.value.subtotal),
-    coupon: totals.value.couponDiscount > 0 ? `- $${fmt(totals.value.couponDiscount)}` : null,
-    vip: totals.value.vipDiscount > 0 ? `- $${fmt(totals.value.vipDiscount)}` : null,
-    credits: totals.value.mealCreditsApplied > 0 ? `- $${fmt(totals.value.mealCreditsApplied)}` : null,
-    tax: fmt(totals.value.tax),
-    deliveryFee: fmt(totals.value.deliveryFee),
-    total: fmt(totals.value.total),
-    creditsRemaining: subs.mealPlanCreditsRemaining,
+    subtotal: fmt(cart.totals.subtotal),
+    coupon: cart.totals.discount > 0 ? `- $${fmt(cart.totals.discount)}` : null,
+    tax: fmt(cart.totals.tax),
+    deliveryFee: fmt(0),
+    total: fmt(cart.totals.total),
   }
 })
 </script>

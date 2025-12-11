@@ -84,6 +84,10 @@ export type CartTotals = {
   tax: number
   total: number
 }
+export type CouponType = 'percent' | 'fixed'
+export type CartTotalsDetailed = CartTotals & {
+  deliveryFee?: number
+}
 
 export type FulfillmentType = 'delivery' | 'pickup'
 
