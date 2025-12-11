@@ -5,6 +5,7 @@
         <RouterLink class="nav-link" to="/">Home</RouterLink>
         <RouterLink class="nav-link" to="/about">About</RouterLink>
         <RouterLink class="nav-link" to="/orders">Orders</RouterLink>
+        <RouterLink class="nav-link" to="/analytics">Analytics</RouterLink>
 
         <div class="spacer" aria-hidden="true"></div>
 

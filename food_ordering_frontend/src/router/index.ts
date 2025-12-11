@@ -16,6 +16,7 @@ import ItemDetailView from '@/views/ItemDetailView.vue';
 import FoodItemView from '@/views/FoodItemView.vue';
 import InvoiceView from '@/views/InvoiceView.vue';
 import ChatView from '@/views/ChatView.vue';
+import AnalyticsDashboard from '@/views/AnalyticsDashboard.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -52,6 +53,7 @@ const router = createRouter({
     { path: '/item/:id', name: 'item-detail', component: FoodItemView, props: true, meta: { title: 'Item Detail' } },
     { path: '/invoice/:id', name: 'invoice', component: InvoiceView, props: true },
     { path: '/chat', name: 'chat', component: ChatView },
+    { path: '/analytics', name: 'analytics', component: AnalyticsDashboard, meta: { title: 'Analytics' } },
   ],
 });
 
