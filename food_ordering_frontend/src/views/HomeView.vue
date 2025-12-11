@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import CategoryList from '@/components/CategoryList.vue'
 import FoodItemCard from '@/components/FoodItemCard.vue'
 import { fetchCategories, fetchItems } from '@/services/api'
+import { withInventoryDefaults as invDefaults } from '@/services/mockData.inventory'
 import type { FoodCategory, FoodItem } from '@/types'
 import { useRoute } from 'vue-router'
 
@@ -21,7 +22,22 @@ async function load() {
       categories.value = await fetchCategories()
     }
     const search = (route.query.q as string) || undefined
-    items.value = await fetchItems(activeCategory.value, search)
+    const raw = await fetchItems(activeCategory.value, search)
+    // Enrich with availability so badges render
+    items.value = raw.map((fi) =>
+      ({
+        ...fi,
+        ...(invDefaults({
+          id: fi.id,
+          name: fi.name,
+          description: fi.description,
+          price: fi.price,
+          image: fi.image,
+          category: fi.categoryId,
+          availability: 'in_stock',
+        } as any) as any),
+      } as typeof raw[number]),
+    )
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'message' in e) {
       const ex = e as { message?: unknown }

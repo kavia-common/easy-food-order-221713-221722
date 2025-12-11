@@ -33,6 +33,7 @@ import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useChatsStore } from '@/stores/chats';
 import { fetchItems } from '@/services/api'
+import { withInventoryDefaults as invDefaults } from '@/services/mockData.inventory'
 import FoodItemCard from '@/components/FoodItemCard.vue'
 import HealthFilterBar from '@/components/HealthFilterBar.vue'
 import type { FoodItem, HealthFilter } from '@/types'
@@ -56,10 +57,25 @@ async function load() {
   loading.value = true
   try {
     // Client-first fetch; pass filters to API where supported
-    items.value = await fetchItems(undefined, undefined, restaurantId.value, {
+    const raw = await fetchItems(undefined, undefined, restaurantId.value, {
       healthFilters: filters.value.healthFilters,
       maxCalories: filters.value.maxCalories ?? undefined
     })
+    // Enrich with availability fields for badges
+    items.value = raw.map((fi) =>
+      ({
+        ...fi,
+        ...(invDefaults({
+          id: fi.id,
+          name: fi.name,
+          description: fi.description,
+          price: fi.price,
+          image: fi.image,
+          category: fi.categoryId,
+          availability: 'in_stock',
+        } as any) as any),
+      } as typeof raw[number]),
+    )
   } finally {
     loading.value = false
   }

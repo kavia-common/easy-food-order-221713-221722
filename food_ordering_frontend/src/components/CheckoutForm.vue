@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, watch, onMounted } from 'vue'
 import { useCartStore } from '@/stores/cart'
-import { createOrder } from '@/services/api'
+import { createOrder, invalidateCaches } from '@/services/api'
 import type { Address, CardDetails, OrderPayload, PaymentMethod, UpiWalletDetails, FulfillmentType } from '@/types'
 
 const cart = useCartStore()
@@ -144,10 +144,14 @@ async function onSubmit() {
     successId.value = res.id
     successEta.value = res.etaMin
     cart.clear()
+    // Invalidate API caches so menus reflect updated stock/availability
+    try { invalidateCaches('items') } catch { /* ignore */ }
     // Clear checkout state after success
     try {
       if (canUseStorage()) window.localStorage.removeItem(STORAGE_KEY)
     } catch { /* ignore */ }
+    // Dispatch a custom event for any listeners (e.g., live menu components)
+    try { window?.dispatchEvent?.(new CustomEvent('order-success')) } catch { /* ignore */ }
   } else {
     errorMsg.value = 'Order failed. Please try again.'
   }

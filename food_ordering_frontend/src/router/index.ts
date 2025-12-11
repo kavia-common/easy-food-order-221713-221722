@@ -31,6 +31,7 @@ const router = createRouter({
     { path: '/favorites', name: 'favorites', component: FavoritesView },
     { path: '/subscriptions', name: 'subscriptions', component: SubscriptionsView },
     { path: '/manage-menu', name: 'manage-menu', component: ManageMenuView },
+    { path: '/restaurants/:id/manage-menu', name: 'restaurant-manage-menu', component: ManageMenuView, props: true },
     { path: '/items/:id', name: 'item-detail', component: ItemDetailView, props: true },
     { path: '/invoice/:id', name: 'invoice', component: InvoiceView, props: true },
     { path: '/chat', name: 'chat', component: ChatView },

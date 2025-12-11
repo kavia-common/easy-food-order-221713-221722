@@ -10,7 +10,13 @@ import type {
 import type { RestaurantProfile } from '@/types/restaurantProfile'
 import type { Item as CustomerItem, AdminMenuItemEdit, AvailabilityStatus } from '@/types/restaurant'
 import { getMockCategoriesForRestaurant, getMockItems, getMockItemById, mockRestaurants } from './mockData'
-import { loadRestaurants as invLoad, getStock as invGet, setStock as invSet, autoUpdateAvailability as invAuto, withInventoryDefaults as invDefaults } from './mockData.inventory'
+import {
+  loadRestaurants as invLoad,
+  getStock as invGet,
+  setStock as invSet,
+  autoUpdateAvailability as invAuto,
+  withInventoryDefaults as invDefaults,
+} from './mockData.inventory'
 
 /**
  * Small util to validate a base URL.
@@ -71,6 +77,28 @@ const cache = {
   customerMenuByRestaurant: new Map<string, Promise<CustomerItem[]>>(),
 }
 
+// PUBLIC_INTERFACE
+export function invalidateCaches(scope?: 'all' | 'items' | 'restaurants' | 'categories' | 'profiles' | 'customerMenu') {
+  /** Clears client-side caches to force fresh data fetching and re-rendering after updates like orders. */
+  const s = scope || 'all'
+  if (s === 'all' || s === 'items') {
+    cache.itemsByKey.clear()
+    cache.itemByKey.clear()
+  }
+  if (s === 'all' || s === 'restaurants') {
+    cache.restaurantsByQuery.clear()
+  }
+  if (s === 'all' || s === 'categories') {
+    cache.categoriesByRestaurant.clear()
+  }
+  if (s === 'all' || s === 'profiles') {
+    cache.profileById.clear()
+  }
+  if (s === 'all' || s === 'customerMenu') {
+    cache.customerMenuByRestaurant.clear()
+  }
+}
+
 function itemsKey(params: { categoryId?: string; search?: string; restaurantId?: string; healthFilters?: string[]; maxCalories?: number }) {
   return JSON.stringify({
     c: params.categoryId || '',
@@ -123,7 +151,28 @@ export async function fetchItems(
   const cached = cache.itemsByKey.get(key)
   if (cached) return cached
   const p = (async () => {
-    if (shouldUseMock()) return getMockItems({ categoryId, search, restaurantId, healthFilters: options?.healthFilters, maxCalories: options?.maxCalories })
+    if (shouldUseMock()) {
+      const raw = getMockItems({ categoryId, search, restaurantId, healthFilters: options?.healthFilters, maxCalories: options?.maxCalories })
+      // If restaurantId is present, map items to include availability via inventory defaults so UI badges render
+      if (restaurantId) {
+        return (raw as FoodItem[]).map((fi) =>
+          ({
+            ...fi,
+            // invDefaults applies lowStockThreshold/stockQuantity/availability defaults if missing
+            ...invDefaults({
+              id: fi.id,
+              name: fi.name,
+              description: fi.description,
+              price: fi.price,
+              image: fi.image,
+              category: fi.categoryId,
+              availability: 'in_stock',
+            } as unknown as CustomerItem),
+          } as unknown as FoodItem),
+        )
+      }
+      return raw
+    }
     const base = getApiBase()
     if (!base) return getMockItems({ categoryId, search, restaurantId, healthFilters: options?.healthFilters, maxCalories: options?.maxCalories })
     try {
@@ -228,6 +277,8 @@ export async function createOrder(payload: OrderPayload): Promise<OrderResponse>
         invAuto(restaurantId, itemId)
       }
     }
+    // Invalidate item menus so UI can refresh stock/availability
+    invalidateCaches('items')
     return mockOrderSuccess()
   }
   const base = getApiBase()
