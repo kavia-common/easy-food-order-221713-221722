@@ -46,7 +46,9 @@ watch([() => route.query.q, activeCategory], load)
     />
 
     <div v-if="loading" class="loading">Loading menu…</div>
-    <div v-else-if="err" class="error">{{ err }}</div>
+    <div v-else-if="err" class="error">
+      {{ err }}. Please check your connection or try again shortly.
+    </div>
     <div v-else-if="!items.length" class="empty">No items found.</div>
 
     <div v-else class="grid">
