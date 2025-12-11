@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Import AppHeader in the same setup context so it's available in the template
+import AppHeader from '@/components/AppHeader.vue';
 </script>
 
 <template>
@@ -11,11 +13,6 @@
     </main>
   </div>
 </template>
-
-<script lang="ts">
-import AppHeader from '@/components/AppHeader.vue';
-export default { components: { AppHeader } };
-</script>
 
 <style>
 #app {
