@@ -227,17 +227,27 @@ export async function fetchItemById(itemId: string, restaurantId?: string): Prom
   }
 }
 
+/**
+ * Generates a mock success order response with a slight delay.
+ */
+async function mockOrderSuccess(): Promise<OrderResponse> {
+  await new Promise((r) => setTimeout(r, 750))
+  return {
+    id: `MOCK-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+    status: 'success',
+    etaMin: 30,
+  }
+}
+
 // PUBLIC_INTERFACE
-export async function submitOrder(payload: OrderPayload): Promise<OrderResponse> {
-  /** Submits order to API or mocks success with a generated ID. Always falls back gracefully. */
+export async function createOrder(payload: OrderPayload): Promise<OrderResponse> {
+  /** Create order with fulfillment, address/pickup, payment and cart lines. Gracefully falls back to mock. */
   if (shouldUseMock()) {
-    await new Promise((r) => setTimeout(r, 750))
-    return { id: `MOCK-${Math.random().toString(36).slice(2, 8).toUpperCase()}`, status: 'success' }
+    return mockOrderSuccess()
   }
   const base = getApiBase()
   if (!base) {
-    await new Promise((r) => setTimeout(r, 750))
-    return { id: `MOCK-${Math.random().toString(36).slice(2, 8).toUpperCase()}`, status: 'success' }
+    return mockOrderSuccess()
   }
   try {
     const res = await fetch(`${String(base).replace(/\/*$/, '')}/orders`, {
@@ -248,10 +258,14 @@ export async function submitOrder(payload: OrderPayload): Promise<OrderResponse>
     if (!res.ok) throw new Error('Order failed')
     return res.json()
   } catch {
-    // graceful fallback
-    await new Promise((r) => setTimeout(r, 750))
-    return { id: `FALLBACK-${Math.random().toString(36).slice(2, 8).toUpperCase()}`, status: 'success' }
+    return mockOrderSuccess()
   }
+}
+
+// PUBLIC_INTERFACE
+export async function submitOrder(payload: OrderPayload): Promise<OrderResponse> {
+  /** Backward-compatible wrapper that delegates to createOrder. */
+  return createOrder(payload)
 }
 
 export const featureFlags = flags

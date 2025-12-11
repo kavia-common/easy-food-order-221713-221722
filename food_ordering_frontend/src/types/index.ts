@@ -70,21 +70,56 @@ export type CartTotals = {
   total: number
 }
 
-export type OrderPayload = {
-  customer: {
-    name: string
-    email?: string
-    phone?: string
-    address: string
-  }
-  items: Array<{ id: string; qty: number }>
-  paymentMethod: 'card' | 'cod'
+export type FulfillmentType = 'delivery' | 'pickup'
+
+export type Address = {
+  name: string
+  phone: string
+  street: string
+  city: string
+  state: string
+  zip: string
   notes?: string
+}
+
+export type PaymentMethod = 'cod' | 'card' | 'upi'
+
+export type CardDetails = {
+  cardholder: string
+  cardNumber: string
+  expMonth: string
+  expYear: string
+  cvv: string
+}
+
+export type UpiWalletDetails = {
+  handle: string // e.g., user@upi or wallet id
+}
+
+export type OrderItemLine = { id: string; qty: number }
+
+export type OrderPayload = {
+  fulfillment: FulfillmentType
+  address?: Address // required when fulfillment=delivery
+  pickup?: {
+    name: string
+    phone: string
+  } // required when fulfillment=pickup
+  items: OrderItemLine[]
+  payment: {
+    method: PaymentMethod
+    card?: CardDetails
+    upi?: UpiWalletDetails
+  }
+  notes?: string
+  // snapshot totals to help backend verify amounts (optional)
+  totals?: CartTotals
 }
 
 export type OrderResponse = {
   id: string
   status: 'success' | 'failed'
+  etaMin?: number
 }
 
 /**
