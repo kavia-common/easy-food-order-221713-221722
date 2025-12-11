@@ -3,6 +3,21 @@ export type FoodCategory = {
   name: string
 }
 
+/**
+ * Restaurant model for browsing nearby restaurants.
+ */
+export type Restaurant = {
+  id: string
+  name: string
+  cuisines: string[]
+  rating: number           // 0-5
+  priceLevel: 1 | 2 | 3 | 4
+  distanceKm: number
+  image?: string
+  etaMin?: number
+  isOpen: boolean
+}
+
 export type FoodItem = {
   id: string
   name: string
@@ -35,4 +50,15 @@ export type OrderPayload = {
 export type OrderResponse = {
   id: string
   status: 'success' | 'failed'
+}
+
+/**
+ * Query options for fetching restaurants.
+ */
+export type RestaurantQuery = {
+  cuisine?: string
+  sortBy?: 'rating' | 'price' | 'distance'
+  sortDir?: 'asc' | 'desc'
+  // free-form, can be extended for geo or address
+  location?: string
 }

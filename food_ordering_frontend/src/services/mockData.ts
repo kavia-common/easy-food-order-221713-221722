@@ -1,4 +1,4 @@
-import type { FoodCategory, FoodItem } from '@/types'
+import type { FoodCategory, FoodItem, Restaurant } from '@/types'
 
 export const mockCategories: FoodCategory[] = [
   { id: 'pizza', name: 'Pizza' },
@@ -54,5 +54,77 @@ export const mockItems: FoodItem[] = [
     image: 'https://images.unsplash.com/photo-1497534446932-c925b458314e?q=80&w=600&auto=format&fit=crop',
     description: 'Brewed tea with ice and lemon.',
     categoryId: 'drinks',
+  },
+]
+
+/**
+ * Mock restaurants dataset for the Restaurants browse page.
+ */
+export const mockRestaurants: Restaurant[] = [
+  {
+    id: 'r1',
+    name: 'Bombay Spice',
+    cuisines: ['Indian'],
+    rating: 4.6,
+    priceLevel: 2,
+    distanceKm: 1.2,
+    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=800&auto=format&fit=crop',
+    etaMin: 30,
+    isOpen: true,
+  },
+  {
+    id: 'r2',
+    name: 'Dragon Wok',
+    cuisines: ['Chinese', 'Asian'],
+    rating: 4.4,
+    priceLevel: 1,
+    distanceKm: 2.4,
+    image: 'https://images.unsplash.com/photo-1526312426976-593cba07da20?q=80&w=800&auto=format&fit=crop',
+    etaMin: 25,
+    isOpen: true,
+  },
+  {
+    id: 'r3',
+    name: 'Trattoria Bella',
+    cuisines: ['Italian', 'Pizza'],
+    rating: 4.8,
+    priceLevel: 3,
+    distanceKm: 3.8,
+    image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=800&auto=format&fit=crop',
+    etaMin: 40,
+    isOpen: true,
+  },
+  {
+    id: 'r4',
+    name: 'Sushi Coast',
+    cuisines: ['Japanese'],
+    rating: 4.7,
+    priceLevel: 3,
+    distanceKm: 5.2,
+    image: 'https://images.unsplash.com/photo-1540162012009-69d6a3d733de?q=80&w=800&auto=format&fit=crop',
+    etaMin: 45,
+    isOpen: false,
+  },
+  {
+    id: 'r5',
+    name: 'Taco Mar',
+    cuisines: ['Mexican'],
+    rating: 4.2,
+    priceLevel: 1,
+    distanceKm: 0.9,
+    image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?q=80&w=800&auto=format&fit=crop',
+    etaMin: 20,
+    isOpen: true,
+  },
+  {
+    id: 'r6',
+    name: 'Mediterraneo',
+    cuisines: ['Mediterranean', 'Greek'],
+    rating: 4.5,
+    priceLevel: 2,
+    distanceKm: 4.3,
+    image: 'https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?q=80&w=800&auto=format&fit=crop',
+    etaMin: 35,
+    isOpen: true,
   },
 ]

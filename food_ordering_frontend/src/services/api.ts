@@ -1,4 +1,4 @@
-import type { FoodCategory, FoodItem, OrderPayload, OrderResponse } from '@/types'
+import type { FoodCategory, FoodItem, OrderPayload, OrderResponse, Restaurant, RestaurantQuery } from '@/types'
 
 /**
  * Small util to validate a base URL.
@@ -145,3 +145,55 @@ export async function submitOrder(payload: OrderPayload): Promise<OrderResponse>
 }
 
 export const featureFlags = flags
+
+// PUBLIC_INTERFACE
+export async function fetchRestaurants(query: RestaurantQuery = {}): Promise<Restaurant[]> {
+  /**
+   * Fetch restaurants list with optional cuisine filter and sorting.
+   * Falls back to mock on missing/invalid base or any network failure.
+   *
+   * Query params: cuisine, sortBy=rating|price|distance, sortDir=asc|desc, location
+   */
+  const applyClientSide = (list: Restaurant[]): Restaurant[] => {
+    let r = list.slice()
+    if (query.cuisine) {
+      const c = String(query.cuisine).toLowerCase()
+      r = r.filter((it) => it.cuisines.some((x) => x.toLowerCase() === c))
+    }
+    if (query.sortBy) {
+      const dir = query.sortDir === 'asc' ? 1 : -1
+      const key = query.sortBy
+      r.sort((a, b) => {
+        const av = key === 'price' ? a.priceLevel : key === 'distance' ? a.distanceKm : a.rating
+        const bv = key === 'price' ? b.priceLevel : key === 'distance' ? b.distanceKm : b.rating
+        if (av === bv) return 0
+        return av > bv ? dir : -dir
+      })
+    }
+    return r
+  }
+
+  if (shouldUseMock()) {
+    const data = await importMock()
+    return applyClientSide(data.mockRestaurants)
+  }
+  const base = getApiBase()
+  if (!base) {
+    const data = await importMock()
+    return applyClientSide(data.mockRestaurants)
+  }
+  try {
+    const url = new URL(`${String(base).replace(/\/+$/, '')}/restaurants`, window.location.origin)
+    if (query.cuisine) url.searchParams.set('cuisine', String(query.cuisine))
+    if (query.sortBy) url.searchParams.set('sortBy', String(query.sortBy))
+    if (query.sortDir) url.searchParams.set('sortDir', String(query.sortDir))
+    if (query.location) url.searchParams.set('location', String(query.location))
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } })
+    if (!res.ok) throw new Error('Failed to fetch restaurants')
+    const serverList: Restaurant[] = await res.json()
+    return applyClientSide(serverList)
+  } catch {
+    const data = await importMock()
+    return applyClientSide(data.mockRestaurants)
+  }
+}

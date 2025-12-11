@@ -38,6 +38,7 @@ const cartCount = computed(() => cart.count)
       </div>
 
       <nav class="actions">
+        <a class="nav-link" href="#" @click.prevent="router.push('/restaurants')" aria-label="Browse restaurants">Restaurants</a>
         <button class="cart-btn" @click="router.push('/cart')">
           Cart
           <span v-if="cartCount" class="badge">{{ cartCount }}</span>
@@ -109,6 +110,22 @@ const cartCount = computed(() => cart.count)
   box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
 }
 
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: .75rem;
+}
+.actions .nav-link {
+  color: var(--text);
+  padding: .45rem .6rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.actions .nav-link:focus, .actions .nav-link:hover {
+  border-color: var(--border);
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.08);
+  outline: none;
+}
 .actions .cart-btn {
   background: var(--primary);
   color: white;
