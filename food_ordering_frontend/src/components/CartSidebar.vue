@@ -1,14 +1,25 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import QuantityStepper from './QuantityStepper.vue'
 import { useRouter } from 'vue-router'
 
 const cart = useCartStore()
 const router = useRouter()
+
+const couponInput = ref<string>(cart.appliedCouponCode || '')
+function apply() {
+  if (!couponInput.value) return
+  cart.applyCoupon(couponInput.value)
+}
+function removeCoupon() {
+  cart.removeCoupon()
+  couponInput.value = ''
+}
 </script>
 
 <template>
-  <div class="panel">
+  <div class="panel" aria-label="Cart panel">
     <h2>Cart</h2>
     <div v-if="!cart.lines.length" class="empty">
       Your cart is empty.
@@ -25,8 +36,29 @@ const router = useRouter()
       </li>
     </ul>
 
-    <div class="summary">
+    <div v-if="cart.lines.length" class="coupon">
+      <label class="field">
+        <span>Coupon</span>
+        <div class="row">
+          <input
+            :value="couponInput"
+            @input="(e:any)=>couponInput = e.target.value"
+            placeholder="Enter coupon code"
+            aria-label="Coupon code"
+          />
+          <button class="apply" @click="apply" :disabled="!couponInput">Apply</button>
+          <button v-if="cart.appliedCouponCode" class="remove-coupon" @click="removeCoupon" aria-label="Remove coupon">Remove</button>
+        </div>
+      </label>
+      <p v-if="cart.couponError" class="help error" role="alert">{{ cart.couponError }}</p>
+      <p v-else-if="cart.appliedCouponCode" class="help success" aria-live="polite">
+        Applied: <strong>{{ cart.appliedCouponCode }}</strong>
+      </p>
+    </div>
+
+    <div class="summary" aria-label="Order summary">
       <div class="row"><span>Subtotal</span><span>${{ cart.subtotal.toFixed(2) }}</span></div>
+      <div v-if="cart.discount > 0" class="row savings"><span>Savings</span><span>-${{ cart.discount.toFixed(2) }}</span></div>
       <div class="row"><span>Tax</span><span>${{ cart.tax.toFixed(2) }}</span></div>
       <div class="row total"><span>Total</span><span>${{ cart.total.toFixed(2) }}</span></div>
       <button class="checkout" :disabled="!cart.lines.length" @click="router.push('/checkout')">
@@ -77,12 +109,51 @@ h2 { margin-bottom: .5rem; }
 }
 .remove:hover { background: #f3f4f6; }
 
+.coupon {
+  margin-top: .75rem;
+  padding-top: .5rem;
+  border-top: 1px dashed var(--border);
+}
+.field { display: grid; gap: .35rem; }
+.field span { color: #374151; font-size: .9rem; }
+.row { display: flex; gap: .5rem; align-items: center; }
+input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .5rem .7rem;
+  background: var(--surface);
+  outline: none;
+}
+input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,0.12); }
+.apply {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: .5rem .8rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.remove-coupon {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid var(--border);
+  padding: .5rem .7rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.help { margin: .4rem 0 0; font-size: .9rem; }
+.help.error { color: #991b1b; }
+.help.success { color: #065f46; }
+
 .summary {
   margin-top: 1rem;
   display: grid;
   gap: .4rem;
 }
 .row { display: flex; justify-content: space-between; color: #374151; }
+.savings { color: #065f46; }
 .total { font-weight: 800; color: var(--text); }
 .checkout {
   margin-top: .5rem;

@@ -60,6 +60,16 @@ export type CartLine = {
   qty: number
 }
 
+/**
+ * Enriched totals snapshot from cart for display and checkout.
+ */
+export type CartTotals = {
+  subtotal: number
+  discount: number
+  tax: number
+  total: number
+}
+
 export type OrderPayload = {
   customer: {
     name: string

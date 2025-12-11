@@ -12,5 +12,6 @@ import CartSidebar from '@/components/CartSidebar.vue'
 .wrap {
   max-width: 720px;
   margin: 0 auto;
+  padding: 0 .5rem;
 }
 </style>
