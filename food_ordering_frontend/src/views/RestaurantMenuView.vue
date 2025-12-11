@@ -3,8 +3,13 @@ import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CategoryList from '@/components/CategoryList.vue'
 import FoodItemCard from '@/components/FoodItemCard.vue'
+import RatingSummaryBar from '@/components/RatingSummaryBar.vue'
+import ReviewList from '@/components/ReviewList.vue'
+import ReviewForm from '@/components/ReviewForm.vue'
 import type { FoodCategory, FoodItem, Restaurant } from '@/types'
+import type { RatingSummary, RestaurantReview } from '@/types/reviews'
 import { fetchCategories, fetchItems, fetchRestaurants } from '@/services/api'
+import { useReviewsStore } from '@/stores/reviews'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +22,20 @@ const loading = ref(false)
 const err = ref<string | null>(null)
 const activeCategory = ref<string | undefined>(undefined)
 const search = ref<string>((route.query.q as string) || '')
+
+const reviewsStore = useReviewsStore()
+const ratingSummary = ref<RatingSummary>({ average: 0, count: 0, breakdown: { 5:0,4:0,3:0,2:0,1:0 } })
+const recentReviews = ref<RestaurantReview[]>([])
+const reviewsLoading = ref<boolean>(false)
+
+async function loadRestaurantReviews() {
+  if (!restaurant.value) return
+  reviewsLoading.value = true
+  await reviewsStore.loadRestaurantReviews(restaurant.value.id, 10)
+  ratingSummary.value = reviewsStore.restaurantSummaries[restaurant.value.id] || ratingSummary.value
+  recentReviews.value = reviewsStore.restaurantRecent[restaurant.value.id] || []
+  reviewsLoading.value = false
+}
 
 async function loadRestaurant() {
   try {
@@ -62,7 +81,15 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  await loadRestaurant()
+  await loadRestaurantReviews()
+  if (route.hash === '#reviews') {
+    const el = document.getElementById('reviews')
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+  }
+})
 
 // Debounce search-driven reloads to minimize chatter
 let searchTimer: number | null = null
@@ -83,6 +110,17 @@ watch(activeCategory, () => {
 
 function openItem(item: FoodItem) {
   router.push({ name: 'item-detail', params: { id: restaurantId, itemId: item.id } })
+}
+
+async function handleRestaurantReviewSubmit(payload: { rating: number; comment: string }) {
+  if (!restaurant.value) return
+  await reviewsStore.submitRestaurantReviewOptimistic({
+    restaurantId: restaurant.value.id,
+    author: 'You',
+    rating: (Math.max(0, Math.min(5, Number(payload.rating))) as unknown) as import('@/types/reviews').RatingValue,
+    comment: payload.comment,
+  })
+  await loadRestaurantReviews()
 }
 </script>
 
@@ -123,6 +161,17 @@ function openItem(item: FoodItem) {
         <FoodItemCard :item="it" />
       </article>
     </div>
+
+    <section id="reviews" class="reviews-section">
+      <h3 class="reviews-title">Ratings & Reviews</h3>
+      <div class="reviews-grid">
+        <RatingSummaryBar :summary="ratingSummary" :loading="reviewsLoading" />
+        <div class="reviews-right">
+          <ReviewList :reviews="recentReviews" :loading="reviewsLoading" />
+          <ReviewForm class="mt-3" :submit-label="'Submit review'" @submit="handleRestaurantReviewSubmit" />
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -195,5 +244,31 @@ function openItem(item: FoodItem) {
 @keyframes shimmer {
   0% { background-position: 100% 0; }
   100% { background-position: 0 0; }
+}
+
+.reviews-section {
+  margin-top: 1rem;
+  padding-top: .5rem;
+  border-top: 1px solid var(--border);
+}
+.reviews-title {
+  margin: 0 0 .5rem 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.reviews-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .75rem;
+}
+.reviews-right {
+  display: grid;
+  gap: .75rem;
+}
+@media (min-width: 768px) {
+  .reviews-grid {
+    grid-template-columns: 1fr 2fr;
+  }
 }
 </style>

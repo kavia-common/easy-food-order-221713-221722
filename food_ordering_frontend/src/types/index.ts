@@ -133,5 +133,6 @@ export type RestaurantQuery = {
   location?: string
 }
 
-// Re-export order-related domain models
+ // Re-export order-related domain models
 export * from './orders'
+export * from './reviews'

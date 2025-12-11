@@ -48,7 +48,7 @@ function toggleFav() {
       <h3 class="name">{{ restaurant.name }}</h3>
       <p class="cuisines">{{ restaurant.cuisines.join(', ') }}</p>
       <div class="meta">
-        <span class="rating" aria-label="Rating">
+        <span class="rating" aria-label="Rating" :title="`${restaurant.rating.toFixed(1)} average rating`">
           ⭐ {{ restaurant.rating.toFixed(1) }}
         </span>
         <span class="price" aria-label="Price level">

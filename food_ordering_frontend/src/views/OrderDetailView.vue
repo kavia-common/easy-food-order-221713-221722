@@ -68,24 +68,80 @@
         </p>
         <p>Status: <strong :class="detail.paymentSnapshot.paid ? 'ok' : 'warn'">{{ detail.paymentSnapshot.paid ? 'Paid' : 'Unpaid' }}</strong></p>
       </article>
+      <article v-if="detail && detail.fulfillment.type === 'delivery'" class="panel">
+        <h2>Rate your delivery</h2>
+        <section v-if="deliveryLoading" aria-busy="true" class="skeleton">
+          <div class="skeleton-card"></div>
+        </section>
+        <section v-else>
+          <div v-if="existingDeliveryReview" class="mb-2">
+            <div class="text-sm text-gray-700">Your previous rating</div>
+            <div class="flex items-center gap-2 mt-1">
+              <StarRating :model-value="existingDeliveryReview.rating" readonly />
+              <span class="text-xs text-gray-600">{{ existingDeliveryReview.rating.toFixed(1) }}</span>
+            </div>
+            <p class="text-sm text-gray-700 mt-1 whitespace-pre-line">{{ existingDeliveryReview.comment }}</p>
+          </div>
+          <ReviewForm
+            v-if="detail?.driverId"
+            :initial-rating="existingDeliveryReview?.rating || 0"
+            :initial-comment="existingDeliveryReview?.comment || ''"
+            :submit-label="existingDeliveryReview ? 'Update review' : 'Submit review'"
+            @submit="submitDeliveryReview"
+          />
+        </section>
+      </article>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useOrdersStore } from '@/stores/orders';
 import { useCartStore } from '@/stores/cart';
+import { useReviewsStore } from '@/stores/reviews';
+import StarRating from '@/components/StarRating.vue';
+import ReviewForm from '@/components/ReviewForm.vue';
+import type { DeliveryReview } from '@/types/reviews';
 
 const route = useRoute();
 const id = route.params.id as string;
 const orders = useOrdersStore();
 const cart = useCartStore();
 
-onMounted(() => {
+const reviewsStore = useReviewsStore();
+const deliveryLoading = ref<boolean>(false);
+const existingDeliveryReview = ref<DeliveryReview | undefined>(undefined);
+
+onMounted(async () => {
   orders.loadOrder(id);
+  await loadDeliveryReview();
 });
+
+async function loadDeliveryReview() {
+  const d = detail.value;
+  if (!d) return;
+  deliveryLoading.value = true;
+  await reviewsStore.loadDeliveryReviewByOrder(String(d.id));
+  existingDeliveryReview.value = reviewsStore.deliveryByOrder[String(d.id)];
+  deliveryLoading.value = false;
+}
+
+async function submitDeliveryReview(payload: { rating: number; comment: string }) {
+  const d = detail.value;
+  // The existing OrderDetail type doesn't expose driver info; use a stable mock/person id derived from restaurant name.
+  const deliveryPersonId = d ? String(d.restaurantName || d.restaurantId || d.id) : undefined;
+  if (!d || !deliveryPersonId) return;
+  await reviewsStore.submitDeliveryReviewOptimistic({
+    orderId: String(d.id),
+    deliveryPersonId,
+    author: 'You',
+    rating: (Math.max(0, Math.min(5, Number(payload.rating))) as unknown) as import('@/types/reviews').RatingValue,
+    comment: payload.comment,
+  });
+  await loadDeliveryReview();
+}
 
 const detail = computed(() => orders.getById(id));
 type TotalsLike = {

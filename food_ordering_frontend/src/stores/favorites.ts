@@ -70,7 +70,6 @@ export const useFavoritesStore = defineStore('favorites', () => {
     /** Remove a restaurant from favorites. */
     if (!(id in restaurants.value)) return
     const next = { ...restaurants.value }
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete (next as Record<string, unknown>)[id]
     restaurants.value = next
   }
