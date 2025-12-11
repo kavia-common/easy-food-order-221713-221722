@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useCartStore } from '@/stores/cart'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, type LocationQueryRaw } from 'vue-router'
 import { featureFlags } from '@/services/api'
 
 const cart = useCartStore()
@@ -11,13 +11,24 @@ const enableSearch = featureFlags.enableSearch ?? true
 
 const q = ref<string>((route.query.q as string) || '')
 
+let qTimer: number | null = null
 watch(q, (val) => {
-  const query = { ...route.query }
-  if (val) query.q = val
-  else delete query.q
-  if (route.name === 'home') {
-    router.replace({ name: 'home', query })
-  }
+  if (qTimer) window.clearTimeout(qTimer)
+  // Debounce query updates to avoid excessive reloads
+  qTimer = window.setTimeout(() => {
+    // Build a LocationQueryRaw compatible object
+    const query: LocationQueryRaw = { ...route.query }
+    if (val && val.length > 0) {
+      query.q = String(val)
+    } else {
+      // Ensure 'q' is omitted when empty
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete (query as Record<string, unknown>).q
+    }
+    if (route.name === 'home') {
+      router.replace({ name: 'home', query })
+    }
+  }, 300)
 })
 const cartCount = computed(() => cart.count)
 </script>

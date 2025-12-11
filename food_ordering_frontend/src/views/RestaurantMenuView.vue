@@ -29,27 +29,57 @@ async function loadRestaurant() {
 }
 
 async function load() {
+  const t0 = performance.now()
   loading.value = true
   err.value = null
   try {
-    if (!restaurant.value) await loadRestaurant()
-    if (categories.value.length === 0) {
-      categories.value = await fetchCategories(restaurantId)
+    // Kick off restaurant and categories in parallel if needed
+    const tasks: Promise<unknown>[] = []
+    if (!restaurant.value) {
+      tasks.push(loadRestaurant())
     }
+    if (categories.value.length === 0) {
+      tasks.push(
+        (async () => {
+          categories.value = await fetchCategories(restaurantId)
+        })(),
+      )
+    }
+    if (tasks.length) await Promise.all(tasks)
+
+    // Items last (depends on activeCategory/search)
     items.value = await fetchItems(activeCategory.value, search.value || undefined, restaurantId)
   } catch {
     err.value = 'Failed to load menu'
   } finally {
     loading.value = false
+    const t1 = performance.now()
+    if (import.meta.env?.DEV) {
+      // Log timing only in development to aid performance verification
+      // and avoid noisy logs in production builds.
+      console.log(`[Menu] load(${restaurantId}) in ${(t1 - t0).toFixed(0)}ms`)
+    }
   }
 }
 
 onMounted(load)
-watch([() => route.query.q], () => {
-  search.value = (route.query.q as string) || ''
+
+// Debounce search-driven reloads to minimize chatter
+let searchTimer: number | null = null
+watch(
+  () => route.query.q,
+  (val) => {
+    search.value = (val as string) || ''
+    if (searchTimer) window.clearTimeout(searchTimer)
+    searchTimer = window.setTimeout(() => {
+      load()
+    }, 250)
+  },
+)
+
+watch(activeCategory, () => {
   load()
 })
-watch(activeCategory, load)
 
 function openItem(item: FoodItem) {
   router.push({ name: 'item-detail', params: { id: restaurantId, itemId: item.id } })
@@ -76,7 +106,13 @@ function openItem(item: FoodItem) {
 
     <CategoryList :categories="categories" :active="activeCategory" @select="(id)=>activeCategory=id" />
 
-    <div v-if="loading" class="state loading" aria-live="polite">Loading menu…</div>
+    <div v-if="loading" class="grid skeletons" aria-label="Loading menu">
+      <div v-for="n in 6" :key="n" class="skeleton-card">
+        <div class="skeleton-img" />
+        <div class="skeleton-text w1" />
+        <div class="skeleton-text w2" />
+      </div>
+    </div>
     <div v-else-if="err" class="state error" role="alert">
       {{ err }}. Please check your connection or try again shortly.
     </div>
@@ -120,6 +156,7 @@ function openItem(item: FoodItem) {
   padding: .75rem;
 }
 .error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+
 .grid {
   display: grid;
   grid-template-columns: repeat(1, minmax(0,1fr));
@@ -128,4 +165,35 @@ function openItem(item: FoodItem) {
 @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
 .clickable { cursor: pointer; }
+
+/* Skeleton styles */
+.skeletons .skeleton-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  padding-bottom: .75rem;
+}
+.skeleton-img {
+  height: 160px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+.skeleton-text {
+  height: 12px;
+  margin: .5rem .75rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+.skeleton-text.w1 { width: 70%; }
+.skeleton-text.w2 { width: 45%; }
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
 </style>

@@ -45,7 +45,13 @@ watch([() => route.query.q, activeCategory], load)
       @select="(id)=> activeCategory = id"
     />
 
-    <div v-if="loading" class="loading">Loading menu…</div>
+    <div v-if="loading" class="grid skeletons" aria-label="Loading items">
+      <div v-for="n in 6" :key="n" class="skeleton-card">
+        <div class="skeleton-img" />
+        <div class="skeleton-text w1" />
+        <div class="skeleton-text w2" />
+      </div>
+    </div>
     <div v-else-if="err" class="error">
       {{ err }}. Please check your connection or try again shortly.
     </div>
@@ -77,4 +83,35 @@ watch([() => route.query.q, activeCategory], load)
 }
 @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+
+/* Skeleton styles */
+.skeletons .skeleton-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  padding-bottom: .75rem;
+}
+.skeleton-img {
+  height: 160px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+.skeleton-text {
+  height: 12px;
+  margin: .5rem .75rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+.skeleton-text.w1 { width: 70%; }
+.skeleton-text.w2 { width: 45%; }
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
 </style>
