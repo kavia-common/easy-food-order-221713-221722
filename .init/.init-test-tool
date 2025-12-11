@@ -1,0 +1,4 @@
+{
+    "command": "npm run test:unit",
+    "working_directory": "/home/kavia/workspace/code-generation/easy-food-order-221713-221722/food_ordering_frontend"
+}
