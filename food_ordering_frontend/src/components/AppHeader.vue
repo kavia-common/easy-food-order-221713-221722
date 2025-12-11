@@ -6,6 +6,7 @@
         <RouterLink class="nav-link" to="/about">About</RouterLink>
         <RouterLink class="nav-link" to="/orders">Orders</RouterLink>
         <RouterLink class="nav-link" to="/analytics">Analytics</RouterLink>
+        <RouterLink class="nav-link admin" to="/admin/coupons" aria-label="Admin Coupons">Admin</RouterLink>
 
         <div class="spacer" aria-hidden="true"></div>
 
@@ -53,6 +54,13 @@ function goChat() {
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
 }
+:root, :host {
+  --primary: #2563EB;
+  --secondary: #F59E0B;
+  --surface: #ffffff;
+  --border: #E5E7EB;
+  --text: #111827;
+}
 .wrapper {
   max-width: 1100px;
   margin: 0 auto;
@@ -73,6 +81,9 @@ function goChat() {
 .nav-link.router-link-active {
   background: rgba(37,99,235,.1);
   color: #1e4fd6;
+}
+.nav-link.admin {
+  border: 1px dashed #93C5FD;
 }
 .chat-link {
   background: transparent;

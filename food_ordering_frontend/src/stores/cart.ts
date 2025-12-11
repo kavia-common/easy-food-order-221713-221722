@@ -3,7 +3,9 @@ import { computed, ref, watch } from 'vue'
 import type { CartLine, FoodItem, CartTotals } from '@/types'
 import type { Coupon } from '@/services/coupons'
 import { computeTotals, lineSubtotal, safeRound2 } from '@/services/pricing'
-import { validateCoupon as asyncValidateCoupon, couponMeetsSubtotal } from '@/services/coupons'
+import { couponMeetsSubtotal } from '@/services/coupons'
+import { findByCode as findCouponByCode, validateCouponWithContext } from '@/services/couponsAdmin'
+import type { CouponValidationContext } from '@/types/coupons'
 
 type State = {
   lines: CartLine[]
@@ -148,23 +150,35 @@ export const useCartStore = defineStore('cart', () => {
   async function applyCoupon(code: string): Promise<boolean> {
     /** Validate and apply a coupon code using service; persists when valid. */
     couponError.value = null
-    const res = await asyncValidateCoupon(code)
-    if (!res.valid) {
-      couponError.value = res.reason || 'Invalid coupon code.'
+
+    const found = await findCouponByCode(code)
+    if (!found) {
+      couponError.value = 'Invalid coupon code.'
       appliedCoupon.value = null
       appliedCouponCode.value = null
       return false
     }
-    // Check subtotal constraint client-side
-    const sub = subtotal.value
-    if (!couponMeetsSubtotal(sub, res.coupon)) {
-      couponError.value = `Coupon requires a minimum subtotal of $${(res.coupon.minSubtotal ?? 0).toFixed(2)}.`
+
+    const restaurantIds = deriveRestaurantIdsFromLines(lines.value)
+    const ctx: CouponValidationContext = { subtotal: subtotal.value, restaurantIds, restaurantId: restaurantIds[0] }
+
+    const validation = validateCouponWithContext(found, ctx)
+    if (!validation.valid) {
+      couponError.value = validation.reason
       appliedCoupon.value = null
       appliedCouponCode.value = null
       return false
     }
-    appliedCoupon.value = res.coupon
-    appliedCouponCode.value = res.coupon.code
+
+    if (!couponMeetsSubtotal(subtotal.value, found)) {
+      couponError.value = `Coupon requires a minimum subtotal of $${(found.minSubtotal ?? 0).toFixed(2)}.`
+      appliedCoupon.value = null
+      appliedCouponCode.value = null
+      return false
+    }
+
+    appliedCoupon.value = found
+    appliedCouponCode.value = found.code
     couponError.value = null
     persist()
     return true
@@ -184,6 +198,16 @@ export const useCartStore = defineStore('cart', () => {
   const total = computed(() => totals.value.total)
 
   watch([lines, taxRate, appliedCouponCode], persist, { deep: true })
+
+  function deriveRestaurantIdsFromLines(ls: CartLine[]): string[] {
+    const ids = new Set<string>()
+    for (const l of ls) {
+      const anyLine = l as any
+      const rid = anyLine.restaurantId || anyLine.restaurant?.id
+      if (typeof rid === 'string' && rid) ids.add(rid)
+    }
+    return Array.from(ids)
+  }
 
   return {
     lines,

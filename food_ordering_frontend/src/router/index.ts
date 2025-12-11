@@ -18,6 +18,7 @@ import InvoiceView from '@/views/InvoiceView.vue';
 import ChatView from '@/views/ChatView.vue';
 import AnalyticsDashboard from '@/views/AnalyticsDashboard.vue';
 import NotificationsSettings from '@/views/NotificationsSettings.vue';
+import AdminCouponsView from '@/views/AdminCouponsView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -58,6 +59,9 @@ const router = createRouter({
 
     // notifications
     { path: '/notifications', name: 'notifications', component: NotificationsSettings, meta: { title: 'Notifications' } },
+
+    // admin
+    { path: '/admin/coupons', name: 'admin-coupons', component: AdminCouponsView, meta: { title: 'Admin • Coupons' } },
   ],
 });
 
