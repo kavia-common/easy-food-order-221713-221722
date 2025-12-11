@@ -23,10 +23,12 @@
   /* Ocean Professional Theme variables */
   --primary: #2563EB;
   --secondary: #F59E0B;
+  --success: #F59E0B;
+  --error: #EF4444;
   --surface: #ffffff;
   --background: #f9fafb;
   --text: #111827;
-  --border: #e5e7eb;
+  --border: #E5E7EB;
 }
 
 /* semantic color variables for this project */

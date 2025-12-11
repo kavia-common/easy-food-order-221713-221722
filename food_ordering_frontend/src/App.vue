@@ -5,7 +5,7 @@ import { RouterView } from 'vue-router';
 </script>
 
 <template>
-  <div id="app">
+  <div class="app-shell">
     <header>
       <AppHeader />
     </header>
@@ -16,7 +16,7 @@ import { RouterView } from 'vue-router';
 </template>
 
 <style>
-#app {
+.app-shell {
   min-height: 100vh;
   background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(249,250,251,1));
 }

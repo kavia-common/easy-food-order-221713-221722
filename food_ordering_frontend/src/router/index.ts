@@ -68,8 +68,12 @@ const router = createRouter({
 });
 
 router.afterEach((to) => {
-  if (to.meta?.title) {
-    document.title = `${to.meta.title} • Easy Food Order`
+  try {
+    if (to.meta?.title && typeof document !== 'undefined') {
+      document.title = `${to.meta.title} • Easy Food Order`
+    }
+  } catch {
+    // ignore
   }
 })
 export default router;
