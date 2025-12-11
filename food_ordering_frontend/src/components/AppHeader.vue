@@ -37,11 +37,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, defineAsyncComponent } from 'vue';
 import { useRouter } from 'vue-router';
 import { useChatsStore } from '@/stores/chats';
 import { useCartStore } from '@/stores/cart';
-import VoiceSearchButton from '@/components/VoiceSearchButton.vue';
+
+// Lazy-load VoiceSearchButton so any failure in voice APIs doesn't break initial render.
+const VoiceSearchButton = defineAsyncComponent({
+  loader: () => import('@/components/VoiceSearchButton.vue'),
+  // Simple inline loading fallback to avoid layout shift
+  loadingComponent: {
+    template: '<span class="voice-loading" aria-hidden="true">…</span>',
+  },
+  // If it errors, render nothing to keep header functional
+  errorComponent: {
+    template: '<span class="voice-error" style="display:none"></span>',
+  },
+  delay: 80,
+  timeout: 8000,
+});
 
 const router = useRouter();
 const chats = useChatsStore();
