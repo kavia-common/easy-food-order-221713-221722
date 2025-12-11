@@ -1,3 +1,9 @@
+export type AvailabilityStatus = 'in_stock' | 'out_of_stock'
+
+/**
+/**
+ * Backward-compatible working hours and profile-related types used elsewhere in the app.
+ */
 export interface WorkingHoursDay {
   // e.g., "monday", "tuesday"
   day: string;
@@ -34,3 +40,29 @@ export interface RestaurantProfile {
 }
 
 export type RestaurantProfileMap = Record<string, RestaurantProfile>;
+
+/**
+ * Public customer-facing Item model extended with availability.
+ */
+export interface Item {
+  id: string
+  name: string
+  description?: string
+  price: number
+  image: string
+  category: string
+  rating?: number
+  availability?: AvailabilityStatus
+}
+
+/**
+ * ADMIN payload for creating/updating menu items.
+ */
+export interface AdminMenuItemEdit {
+  name: string
+  description: string
+  price: number
+  image: string
+  category: string
+  availability: AvailabilityStatus
+}

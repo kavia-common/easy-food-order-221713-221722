@@ -7,6 +7,7 @@ import type {
   RestaurantQuery,
 } from '@/types'
 import type { RestaurantProfile } from '@/types/restaurantProfile'
+import type { Item as CustomerItem, AdminMenuItemEdit, AvailabilityStatus } from '@/types/restaurant'
 
 /**
  * Small util to validate a base URL.
@@ -79,6 +80,9 @@ const cache = {
   itemByKey: new Map<string, Promise<FoodItem | null>>(),
   restaurantsByQuery: new Map<string, Promise<Restaurant[]>>(),
   profileById: new Map<string, Promise<RestaurantProfile>>(),
+
+  // admin/customer menu cache per restaurant (customer item type)
+  customerMenuByRestaurant: new Map<string, Promise<CustomerItem[]>>(),
 }
 
 function itemsKey(params: { categoryId?: string; search?: string; restaurantId?: string }) {
@@ -431,3 +435,205 @@ export async function fetchRestaurants(query: RestaurantQuery = {}): Promise<Res
 
 // Re-export orders API to centralize service imports if desired
 export * as OrdersApi from './ordersApi'
+
+/* ==============================
+   Admin-safe menu management APIs
+   ============================== */
+
+const LS_KEYS = {
+  MENU: (rid: string) => `fof.menu.${rid}`,
+}
+
+function safeStorage(): Storage | null {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+function applyDefaultAvailability(item: CustomerItem): CustomerItem {
+  return { ...item, availability: item.availability ?? 'in_stock' }
+}
+
+async function readCustomerMenu(restaurantId: string): Promise<CustomerItem[]> {
+  if (!restaurantId) return []
+  const mem = cache.customerMenuByRestaurant.get(restaurantId)
+  if (mem) return mem
+
+  const p = (async () => {
+    if (!shouldUseMock()) {
+      // When using a real backend, we map server items -> CustomerItem (assumes endpoint below).
+      const base = getApiBase()
+      if (base) {
+        try {
+          const res = await fetch(`${String(base).replace(/\/*$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/menu`, {
+            headers: { 'Content-Type': 'application/json' },
+          })
+          if (!res.ok) throw new Error('Failed to fetch menu')
+          const data = (await res.json()) as CustomerItem[]
+          return data.map(applyDefaultAvailability)
+        } catch {
+          // fallthrough to mock below
+        }
+      }
+    }
+
+    // mock/localStorage
+    const store = safeStorage()
+    const key = LS_KEYS.MENU(restaurantId)
+    if (store) {
+      const raw = store.getItem(key)
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as CustomerItem[]
+          return parsed.map(applyDefaultAvailability)
+        } catch {
+          // ignore and rebuild
+        }
+      }
+    }
+    // Seed from mock data if available
+    const mock = await importMock()
+    // Build from restaurant-specific items in mockData and map to CustomerItem shape
+    const seed: CustomerItem[] = (mock.getMockItems({ restaurantId }) as FoodItem[]).map((fi) => ({
+      id: fi.id,
+      name: fi.name,
+      description: fi.description,
+      price: fi.price,
+      image: fi.image,
+      category: fi.categoryId,
+      availability: 'in_stock',
+    }))
+    if (store) store.setItem(key, JSON.stringify(seed))
+    return seed
+  })()
+
+  cache.customerMenuByRestaurant.set(restaurantId, p)
+  return p
+}
+
+function writeCustomerMenu(restaurantId: string, items: CustomerItem[]) {
+  const store = safeStorage()
+  if (!store) return
+  try {
+    store.setItem(LS_KEYS.MENU(restaurantId), JSON.stringify(items))
+  } catch {
+    // ignore
+  }
+  // refresh cache
+  cache.customerMenuByRestaurant.set(restaurantId, Promise.resolve(items))
+}
+
+// PUBLIC_INTERFACE
+export async function listMenuItems(restaurantId: string): Promise<CustomerItem[]> {
+  /** Lists menu items for admin/customer views, with availability included. */
+  return readCustomerMenu(restaurantId)
+}
+
+// PUBLIC_INTERFACE
+export async function createMenuItem(
+  restaurantId: string,
+  payload: AdminMenuItemEdit
+): Promise<CustomerItem> {
+  if (!restaurantId) throw new Error('restaurantId is required')
+  if (!shouldUseMock()) {
+    const base = getApiBase()
+    if (base) {
+      const res = await fetch(`${String(base).replace(/\/*$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/menu`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error('Failed to create menu item')
+      const created = (await res.json()) as CustomerItem
+      // invalidate cache
+      cache.customerMenuByRestaurant.delete(restaurantId)
+      return applyDefaultAvailability(created)
+    }
+  }
+  // mock
+  const list = await readCustomerMenu(restaurantId)
+  const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}`
+  const item: CustomerItem = {
+    id,
+    name: payload.name,
+    description: payload.description,
+    price: payload.price,
+    image: payload.image,
+    category: payload.category,
+    availability: payload.availability ?? 'in_stock',
+  }
+  const next = [...list, item]
+  writeCustomerMenu(restaurantId, next)
+  return item
+}
+
+// PUBLIC_INTERFACE
+export async function updateMenuItem(
+  restaurantId: string,
+  itemId: string,
+  payload: Partial<AdminMenuItemEdit>
+): Promise<CustomerItem> {
+  if (!restaurantId || !itemId) throw new Error('restaurantId and itemId are required')
+  if (!shouldUseMock()) {
+    const base = getApiBase()
+    if (base) {
+      const res = await fetch(`${String(base).replace(/\/*$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/menu/${encodeURIComponent(itemId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error('Failed to update menu item')
+      const data = (await res.json()) as CustomerItem
+      cache.customerMenuByRestaurant.delete(restaurantId)
+      return applyDefaultAvailability(data)
+    }
+  }
+  // mock
+  const list = await readCustomerMenu(restaurantId)
+  const idx = list.findIndex(i => i.id === itemId)
+  if (idx === -1) throw new Error('Item not found')
+  const updated: CustomerItem = applyDefaultAvailability({
+    ...list[idx],
+    ...payload,
+    availability: payload.availability ?? list[idx].availability ?? 'in_stock',
+  } as CustomerItem)
+  const next = [...list]
+  next[idx] = updated
+  writeCustomerMenu(restaurantId, next)
+  return updated
+}
+
+// PUBLIC_INTERFACE
+export async function updateAvailability(
+  restaurantId: string,
+  itemId: string,
+  status: AvailabilityStatus
+): Promise<CustomerItem> {
+  if (!restaurantId || !itemId) throw new Error('restaurantId and itemId are required')
+  if (!shouldUseMock()) {
+    const base = getApiBase()
+    if (base) {
+      const res = await fetch(`${String(base).replace(/\/*$/, '')}/restaurants/${encodeURIComponent(restaurantId)}/menu/${encodeURIComponent(itemId)}/availability`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ availability: status }),
+      })
+      if (!res.ok) throw new Error('Failed to update availability')
+      const data = (await res.json()) as CustomerItem
+      cache.customerMenuByRestaurant.delete(restaurantId)
+      return applyDefaultAvailability(data)
+    }
+  }
+  // mock
+  const list = await readCustomerMenu(restaurantId)
+  const idx = list.findIndex(i => i.id === itemId)
+  if (idx === -1) throw new Error('Item not found')
+  const updated: CustomerItem = { ...list[idx], availability: status }
+  const next = [...list]
+  next[idx] = updated
+  writeCustomerMenu(restaurantId, next)
+  return updated
+}

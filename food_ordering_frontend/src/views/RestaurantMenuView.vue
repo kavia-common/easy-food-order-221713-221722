@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CategoryList from '@/components/CategoryList.vue'
 import FoodItemCard from '@/components/FoodItemCard.vue'
@@ -12,6 +12,7 @@ import type { RatingSummary, RestaurantReview } from '@/types/reviews'
 import type { RestaurantProfile } from '@/types/restaurantProfile'
 import { fetchCategories, fetchItems, fetchRestaurants, fetchRestaurantProfile } from '@/services/api'
 import { useReviewsStore } from '@/stores/reviews'
+import type { Item as CustomerItem, AvailabilityStatus } from '@/types/restaurant'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,11 +20,13 @@ const restaurantId = route.params.id as string
 
 const restaurant = ref<Restaurant | null>(null)
 const categories = ref<FoodCategory[]>([])
-const items = ref<FoodItem[]>([])
+type DisplayItem = FoodItem | (CustomerItem & { category?: string })
+const items = ref<DisplayItem[]>([])
 const loading = ref(false)
 const err = ref<string | null>(null)
 const activeCategory = ref<string | undefined>(undefined)
 const search = ref<string>((route.query.q as string) || '')
+const hideOut = ref(false)
 
 const reviewsStore = useReviewsStore()
 const ratingSummary = ref<RatingSummary>({ average: 0, count: 0, breakdown: { 5:0,4:0,3:0,2:0,1:0 } })
@@ -81,6 +84,14 @@ async function load() {
   }
 }
 
+const visibleItems = computed<DisplayItem[]>(() => {
+  const withAvail = items.value.map((i) => {
+    const availability = ((i as unknown as CustomerItem).availability ?? 'in_stock') as AvailabilityStatus
+    return Object.assign({}, i, { availability }) as DisplayItem
+  })
+  return hideOut.value ? withAvail.filter(i => (i as unknown as CustomerItem).availability !== 'out_of_stock') : withAvail
+})
+
 onMounted(async () => {
   await load()
   await loadRestaurant()
@@ -119,6 +130,10 @@ watch(activeCategory, () => { load() })
         </p>
       </div>
       <div class="actions">
+        <label class="hide-out">
+          <input type="checkbox" v-model="hideOut" />
+          Hide out of stock
+        </label>
         <button class="back" @click="router.push('/restaurants')">← All Restaurants</button>
       </div>
     </header>
@@ -144,10 +159,10 @@ watch(activeCategory, () => { load() })
     <div v-else-if="err" class="state error" role="alert">
       {{ err }}. Please check your connection or try again shortly.
     </div>
-    <div v-else-if="!items.length" class="state empty">No items found.</div>
+    <div v-else-if="!visibleItems.length" class="state empty">No items found.</div>
 
     <div v-else class="grid" role="list">
-      <article class="clickable" v-for="it in items" :key="it.id" role="listitem" @click="$router.push({ name: 'item-detail', params: { id: restaurantId, itemId: it.id } })">
+      <article class="clickable" v-for="it in visibleItems" :key="it.id" role="listitem" @click="$router.push({ name: 'item-detail', params: { id: restaurantId, itemId: it.id } })">
         <FoodItemCard :item="it" />
       </article>
     </div>
@@ -184,6 +199,10 @@ watch(activeCategory, () => { load() })
 .title h2 { margin: 0; font-size: 1.25rem; }
 .sub { margin: 0; color: #6b7280; display: flex; gap: .5rem; align-items: center; }
 .dot { opacity: .6; }
+.actions {
+  display: flex; gap: .5rem; align-items: center;
+}
+.hide-out { display: inline-flex; gap: .35rem; align-items: center; }
 .actions .back {
   border: 1px solid var(--border);
   background: var(--surface);

@@ -103,6 +103,8 @@ watch(() => route.query.q, (val) => {
 })
 
 watch(activeCategory, () => { load() })
+
+const adminEnabled = typeof window !== 'undefined' && !!window.__ADMIN_ENABLED__
 </script>
 
 <template>
@@ -120,6 +122,7 @@ watch(activeCategory, () => { load() })
       </div>
       <div class="actions">
         <button class="back" @click="router.push('/restaurants')">← All Restaurants</button>
+        <router-link v-if="adminEnabled" class="manage" :to="`/restaurants/${restaurantId}/manage-menu`">Manage menu</router-link>
       </div>
     </header>
 
@@ -191,7 +194,10 @@ watch(activeCategory, () => { load() })
   padding: .4rem .6rem;
   border-radius: 10px;
   cursor: pointer;
+  margin-right: .5rem;
 }
+.manage { color: #2563EB; font-weight: 700; text-decoration: none; }
+
 .tabs {
   display: inline-flex;
   border: 1px solid #dbeafe;

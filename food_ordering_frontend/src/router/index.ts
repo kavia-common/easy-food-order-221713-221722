@@ -8,10 +8,19 @@ const RestaurantMenuView = () => import('@/views/RestaurantMenuView.vue')
 const ItemDetailView = () => import('@/views/ItemDetailView.vue')
 const FavoritesView = () => import('@/views/FavoritesView.vue')
 
-// New Orders routes
+// Orders
 const OrdersView = () => import('@/views/OrdersView.vue')
 const OrderDetailView = () => import('@/views/OrderDetailView.vue')
 const InvoiceView = () => import('@/views/InvoiceView.vue')
+
+// Admin manage menu
+const ManageMenuView = () => import('@/views/ManageMenuView.vue')
+
+declare global {
+  interface Window {
+    __ADMIN_ENABLED__?: boolean
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,6 +30,7 @@ const router = createRouter({
     // keeping existing alt paths for restaurant/item navigation if used elsewhere
     { path: '/restaurants/:id/menu', name: 'restaurant-menu', component: RestaurantMenuView, props: true },
     { path: '/restaurants/:id/items/:itemId', name: 'item-detail', component: ItemDetailView, props: true },
+    { path: '/restaurants/:id/manage-menu', name: 'manage-menu', component: ManageMenuView, props: true, meta: { requiresAdminLite: true } },
 
     { path: '/favorites', name: 'favorites', component: FavoritesView },
 
@@ -35,6 +45,14 @@ const router = createRouter({
   scrollBehavior() {
     return { top: 0 }
   }
+})
+
+router.beforeEach((to, _from, next) => {
+  if (to.meta?.requiresAdminLite) {
+    const allowed = typeof window !== 'undefined' && !!window.__ADMIN_ENABLED__
+    if (!allowed) return next({ name: 'home' })
+  }
+  next()
 })
 
 export default router
