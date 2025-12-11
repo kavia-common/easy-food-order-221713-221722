@@ -24,7 +24,7 @@ const formatted = computed(() => {
     subtotal: fmt(cart.totals.subtotal),
     coupon: cart.totals.discount > 0 ? `- $${fmt(cart.totals.discount)}` : null,
     tax: fmt(cart.totals.tax),
-    deliveryFee: fmt(0),
+    deliveryFee: fmt(cart.deliveryFee),
     total: fmt(cart.totals.total),
   }
 })
@@ -78,7 +78,13 @@ const formatted = computed(() => {
       <div v-if="formatted.vip" class="row savings"><span>VIP Discount</span><span>{{ formatted.vip }}</span></div>
       <div v-if="formatted.credits" class="row savings"><span>Meal Credits</span><span>{{ formatted.credits }}</span></div>
       <div class="row"><span>Tax</span><span>${{ formatted.tax }}</span></div>
-      <div class="row"><span>Delivery</span><span>${{ formatted.deliveryFee }}</span></div>
+      <div class="row">
+        <span class="with-tip">
+          Delivery
+          <span class="tip" aria-label="Delivery fee info" title="Delivery fee may increase during rush hours (11:30–14:00, 18:00–21:00) and on weekends.">ⓘ</span>
+        </span>
+        <span>${{ formatted.deliveryFee }}</span>
+      </div>
       <div v-if="formatted.creditsRemaining > 0" class="credits-remaining">Meal credits left: ${{ (formatted.creditsRemaining/100).toFixed(2) }}</div>
       <div class="row total"><span>Total</span><span>${{ formatted.total }}</span></div>
       <button class="checkout" :disabled="!cart.lines.length" @click="router.push('/checkout')">
@@ -179,6 +185,23 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235
   gap: .4rem;
 }
 .row { display: flex; justify-content: space-between; color: #374151; }
+.with-tip { display: inline-flex; align-items: center; gap: .35rem; }
+.tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  color: #1f2937;
+  background: #e5e7eb;
+  border-radius: 50%;
+  cursor: help;
+}
+.tip:hover {
+  background: rgba(37,99,235,0.15);
+  color: var(--primary);
+}
 .savings { color: #065f46; }
 .total { font-weight: 800; color: var(--text); }
 .checkout {

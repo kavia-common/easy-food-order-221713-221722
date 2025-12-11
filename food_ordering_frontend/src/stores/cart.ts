@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import type { CartLine, FoodItem, CartTotals } from '@/types'
 import type { Coupon } from '@/services/coupons'
-import { computeTotals, lineSubtotal, safeRound2 } from '@/services/pricing'
+import { computeTotals, lineSubtotal, safeRound2, computeDeliveryFee } from '@/services/pricing'
 import { couponMeetsSubtotal } from '@/services/coupons'
 import { findByCode as findCouponByCode, validateCouponWithContext } from '@/services/couponsAdmin'
 import type { CouponValidationContext } from '@/types/coupons'
+import { getDeliveryPricingOptions, getLocalTimezone } from '@/services/pricingConfig'
 
 type State = {
   lines: CartLine[]
@@ -61,12 +62,28 @@ export const useCartStore = defineStore('cart', () => {
   const count = computed(() => lines.value.reduce((sum, l) => sum + l.qty, 0))
   const subtotal = computed(() => lineSubtotal(lines.value))
 
+  // Keep a reactive clock tick so time-based fees recompute. Lightweight interval.
+  const now = ref<Date>(new Date())
+  let timer: any = null
+  onMounted(() => {
+    // Update every 30s to catch entering/exiting rush windows without heavy work.
+    timer = setInterval(() => { now.value = new Date() }, 30000)
+  })
+  onUnmounted(() => { if (timer) clearInterval(timer) })
+
+  const deliveryOptions = computed(() => getDeliveryPricingOptions())
+  const deliveryFee = computed(() => {
+    // Use local timezone information as FYI; computeDeliveryFee treats Date as local
+    const _tz = getLocalTimezone()
+    return computeDeliveryFee(now.value, { lines: lines.value }, deliveryOptions.value)
+  })
+
   const totals = computed<CartTotals>(() => {
     const result = computeTotals({
       lines: lines.value,
       taxRate: taxRate.value,
       coupon: appliedCoupon.value && couponMeetsSubtotal(subtotal.value, appliedCoupon.value) ? appliedCoupon.value : null,
-      deliveryFee: 0, // optional fee; set via checkout flow or settings if needed
+      deliveryFee: deliveryFee.value,
     })
     return {
       subtotal: result.subtotal,
@@ -220,6 +237,8 @@ export const useCartStore = defineStore('cart', () => {
     taxRate,
     couponError,
     appliedCouponCode,
+    // expose delivery fee for UI
+    deliveryFee,
     addItem,
     updateQty,
     removeItem,
