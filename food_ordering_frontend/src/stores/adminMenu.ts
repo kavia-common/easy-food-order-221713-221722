@@ -38,10 +38,6 @@ export const useAdminMenuStore = defineStore('adminMenu', {
       } catch (e) {
         let msg = 'Failed to load menu'
         if (e instanceof Error) msg = e.message
-        else if (typeof e === 'object' && e && 'message' in (e as Record<string, unknown>)) {
-          const m = (e as Record<string, unknown>).message
-          if (typeof m === 'string') msg = m
-        }
         this.errorByRestaurant[restaurantId] = msg
       } finally {
         this.loadingByRestaurant[restaurantId] = false
@@ -50,17 +46,15 @@ export const useAdminMenuStore = defineStore('adminMenu', {
     // PUBLIC_INTERFACE
     async addItem(restaurantId: string, payload: AdminMenuItemEdit) {
       const prev = this.itemsByRestaurant[restaurantId] || []
-      // optimistic temporary item
       const tempId = `temp-${Date.now()}`
       const optimistic: Item = { id: tempId, ...payload }
       this.itemsByRestaurant[restaurantId] = [...prev, optimistic]
       try {
         const created = await createMenuItem(restaurantId, payload)
-        // replace temp with created
-        this.itemsByRestaurant[restaurantId] = (this.itemsByRestaurant[restaurantId] || [])
-          .map(i => (i.id === tempId ? created : i))
+        this.itemsByRestaurant[restaurantId] = (this.itemsByRestaurant[restaurantId] || []).map((i) =>
+          i.id === tempId ? created : i,
+        )
       } catch (e) {
-        // rollback
         this.itemsByRestaurant[restaurantId] = prev
         throw e
       }
@@ -68,7 +62,7 @@ export const useAdminMenuStore = defineStore('adminMenu', {
     // PUBLIC_INTERFACE
     async editItem(restaurantId: string, itemId: string, payload: Partial<AdminMenuItemEdit>) {
       const prev = this.itemsByRestaurant[restaurantId] || []
-      const idx = prev.findIndex(i => i.id === itemId)
+      const idx = prev.findIndex((i) => i.id === itemId)
       if (idx === -1) throw new Error('Item not found')
       const before = prev[idx]
       const optimistic: Item = { ...before, ...payload }
@@ -78,11 +72,10 @@ export const useAdminMenuStore = defineStore('adminMenu', {
       try {
         const updated = await updateMenuItem(restaurantId, itemId, payload)
         const afterList = [...this.itemsByRestaurant[restaurantId]]
-        const afterIdx = afterList.findIndex(i => i.id === itemId)
+        const afterIdx = afterList.findIndex((i) => i.id === itemId)
         if (afterIdx !== -1) afterList[afterIdx] = updated
         this.itemsByRestaurant[restaurantId] = afterList
       } catch (e) {
-        // rollback
         const rollback = [...prev]
         rollback[idx] = before
         this.itemsByRestaurant[restaurantId] = rollback
@@ -92,7 +85,7 @@ export const useAdminMenuStore = defineStore('adminMenu', {
     // PUBLIC_INTERFACE
     async toggleAvailability(restaurantId: string, itemId: string, status: AvailabilityStatus) {
       const prev = this.itemsByRestaurant[restaurantId] || []
-      const idx = prev.findIndex(i => i.id === itemId)
+      const idx = prev.findIndex((i) => i.id === itemId)
       if (idx === -1) throw new Error('Item not found')
       const before = prev[idx]
       const optimistic: Item = { ...before, availability: status }
@@ -102,7 +95,7 @@ export const useAdminMenuStore = defineStore('adminMenu', {
       try {
         const updated = await updateAvailability(restaurantId, itemId, status)
         const after = [...this.itemsByRestaurant[restaurantId]]
-        const afterIdx = after.findIndex(i => i.id === itemId)
+        const afterIdx = after.findIndex((i) => i.id === itemId)
         if (afterIdx !== -1) after[afterIdx] = updated
         this.itemsByRestaurant[restaurantId] = after
       } catch (e) {

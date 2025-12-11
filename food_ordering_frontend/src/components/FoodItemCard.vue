@@ -36,6 +36,7 @@ const availability = computed<AvailabilityStatus>(() => {
   return 'availability' in props.item && props.item.availability ? props.item.availability : 'in_stock'
 })
 const isOut = computed(() => availability.value === 'out_of_stock')
+const isLow = computed(() => availability.value === 'low_stock')
 
 type CartLineLite = { id: string; name: string; price: number; image?: string }
 
@@ -76,6 +77,7 @@ function toggleFav() {
         ❤
       </button>
       <img :src="image" :alt="name" />
+      <span v-if="isLow" class="badge low">Low stock</span>
       <span v-if="isOut" class="badge">Out of stock</span>
     </div>
     <div class="info">
@@ -125,6 +127,11 @@ function toggleFav() {
   padding: 2px 8px;
   border-radius: 9999px;
   font-size: 12px;
+}
+.badge.low {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fcd34d;
 }
 .fav {
   position: absolute;

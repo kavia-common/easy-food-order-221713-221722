@@ -35,9 +35,9 @@
             <img :src="item.image" :alt="item.name" />
             <span
               class="badge"
-              :class="item.availability === 'in_stock' ? 'success' : 'warn'"
+              :class="badgeClass(item.availability)"
             >
-              {{ item.availability === 'in_stock' ? 'In Stock' : 'Out of Stock' }}
+              {{ availabilityLabel(item.availability) }}
             </span>
           </div>
           <div class="card-body">
@@ -99,6 +99,7 @@
           <label for="avail">Availability</label>
           <select id="avail" v-model="form.availability">
             <option value="in_stock">In Stock</option>
+            <option value="low_stock">Low Stock</option>
             <option value="out_of_stock">Out of Stock</option>
           </select>
         </div>
@@ -229,11 +230,36 @@ function currency(n: number) {
 }
 
 async function onToggleAvailability(item: Item) {
-  const next: AvailabilityStatus = item.availability === 'out_of_stock' ? 'in_stock' : 'out_of_stock'
+  const next: AvailabilityStatus =
+    item.availability === 'out_of_stock' ? 'in_stock' : 'out_of_stock'
   try {
     await store.toggleAvailability(restaurantId.value, item.id, next)
   } catch {
     alert('Failed to update availability')
+  }
+}
+
+function availabilityLabel(status?: AvailabilityStatus) {
+  switch (status) {
+    case 'low_stock':
+      return 'Low Stock'
+    case 'out_of_stock':
+      return 'Out of Stock'
+    case 'in_stock':
+    default:
+      return 'In Stock'
+  }
+}
+
+function badgeClass(status?: AvailabilityStatus) {
+  switch (status) {
+    case 'in_stock':
+      return 'success'
+    case 'low_stock':
+      return 'warn'
+    case 'out_of_stock':
+    default:
+      return 'warn'
   }
 }
 </script>
