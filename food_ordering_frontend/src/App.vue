@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Import AppHeader in the same setup context so it's available in the template
 import AppHeader from '@/components/AppHeader.vue';
+import { RouterView } from 'vue-router';
 </script>
 
 <template>

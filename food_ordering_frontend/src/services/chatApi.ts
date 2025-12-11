@@ -18,8 +18,19 @@ import type {
 } from '@/types/chat';
 import { isServer } from './helpersRuntime';
 
-const WS_ENV = import.meta.env.VITE_WS_URL as string | undefined;
-const API_BASE = import.meta.env.VITE_API_BASE as string | undefined;
+function normalizeBaseUrl(v?: string): string | undefined {
+  try {
+    if (!v || typeof v !== 'string' || !v.trim()) return undefined;
+    // Constructing URL validates basic shape; we allow relative API path like "/api"
+    if (v.startsWith('/')) return v;
+    const u = new URL(v, 'http://localhost');
+    return v;
+  } catch {
+    return undefined;
+  }
+}
+const WS_ENV = normalizeBaseUrl(import.meta.env.VITE_WS_URL as string | undefined);
+const API_BASE = normalizeBaseUrl(import.meta.env.VITE_API_BASE as string | undefined);
 
 const LS_THREADS_KEY = 'mock_chat_threads_v1';
 const LS_MESSAGES_KEY = 'mock_chat_messages_v1';

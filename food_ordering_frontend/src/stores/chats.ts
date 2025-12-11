@@ -14,7 +14,9 @@ function persistDebounced(state: unknown) {
   if (self._t) clearTimeout(self._t);
   self._t = setTimeout(() => {
     try {
-      localStorage.setItem(PERSIST_KEY, JSON.stringify(state));
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(PERSIST_KEY, JSON.stringify(state));
+      }
     } catch {
       // ignore
     }

@@ -12,8 +12,9 @@ function safeWindow(): Window | undefined {
 function getApiBase(): string | undefined {
   // Vite exposes env vars via import.meta.env
   const env = (import.meta as unknown as { env?: Record<string, unknown> }).env || {};
-  const base = (env.VITE_BACKEND_URL as string | undefined) || (env.VITE_API_BASE as string | undefined);
-  return base;
+  const raw = (env.VITE_BACKEND_URL as string | undefined) || (env.VITE_API_BASE as string | undefined);
+  if (!raw || typeof raw !== 'string' || !raw.trim()) return undefined;
+  return raw;
 }
 
 function readLocal<T>(key: string): T | null {

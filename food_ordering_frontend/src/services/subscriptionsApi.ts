@@ -128,13 +128,24 @@ function loadUserSubFromStorage(): UserSubscription | null {
   }
 }
 
+function normalizeApiBase(v?: string): string | undefined {
+  try {
+    if (!v || typeof v !== 'string' || !v.trim()) return undefined;
+    if (v.startsWith('/')) return v.replace(/\/$/, '');
+    // validate URL-like string
+    new URL(v, 'http://localhost');
+    return v.replace(/\/$/, '');
+  } catch {
+    return undefined;
+  }
+}
 async function fetchFromApi<T>(path: string): Promise<T> {
-  const base = import.meta.env.VITE_API_BASE || '';
+  const base = normalizeApiBase(import.meta.env.VITE_API_BASE as string | undefined);
   if (!base) {
     // no backend, throw to use mock fallback
     throw new Error('No API base configured');
   }
-  const url = `${base.replace(/\/$/, '')}${path}`;
+  const url = `${base}${path}`;
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     throw new Error(`API error: ${res.status}`);
