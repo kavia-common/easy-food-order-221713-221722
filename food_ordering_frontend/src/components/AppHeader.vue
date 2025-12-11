@@ -9,6 +9,10 @@
 
         <div class="spacer" aria-hidden="true"></div>
 
+        <RouterLink class="nav-link" to="/notifications" aria-label="Notifications Settings">
+          Notifications
+        </RouterLink>
+
         <VoiceSearchButton />
 
         <button class="chat-link" @click="goChat">

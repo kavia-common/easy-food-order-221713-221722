@@ -33,3 +33,19 @@ try {
   // eslint-disable-next-line no-console
   console.error('Failed to mount Vue app', e);
 }
+
+// Defensive, non-blocking SW registration
+(function registerSW() {
+  try {
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        // eslint-disable-next-line no-console
+        console.warn('[main] SW registration failed:', err);
+      });
+      // @ts-ignore expose for debugging
+      (window as any).__registerSW = () => navigator.serviceWorker.register('/sw.js');
+    }
+  } catch {
+    // ignore
+  }
+})();
